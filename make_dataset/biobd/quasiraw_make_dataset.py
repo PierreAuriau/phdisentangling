@@ -10,14 +10,13 @@ Created on Fri May 13 15:01:27 2022
 
 import os
 import os.path as op
+import sys
 
 import numpy as np
 import pandas as pd
 
-
-
-from ..tools import quasi_raw_nii2npy
-
+sys.path.append(os.path.abspath('..'))
+from funcutils import quasi_raw_nii2npy
 
 # path to neurospin
 if op.exists('/neurospin'):
@@ -29,7 +28,7 @@ else:
 # Parameters
 study = "biobd"
 
-regex = "derivatives/quasi-raw/sub-*/ses*/anat/*preproc-linear*.nii.gz"
+regex = "derivatives/quasi-raw/sub-10*/ses*/anat/*preproc-linear*.nii.gz"
 qc_file = "derivatives/cat12-12.6_vbm_qc/qc.tsv"
 
 output_path = op.join(prefixe, 'neurospin/dico/pauriau/data', study)
