@@ -14,10 +14,9 @@ import os.path as op
 import numpy as np
 import pandas as pd
 
-#Neuroimaging
-import nibabel
 
-from .tools import quasi_raw_nii2npy
+
+from ..tools import quasi_raw_nii2npy
 
 
 # path to neurospin
