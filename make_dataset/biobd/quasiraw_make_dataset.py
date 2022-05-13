@@ -28,7 +28,7 @@ else:
 # Parameters
 study = "biobd"
 
-regex = "derivatives/quasi-raw/sub-10*/ses*/anat/*preproc-linear*.nii.gz"
+regex = "derivatives/quasi-raw/sub-*/ses*/anat/*preproc-linear*.nii.gz"
 qc_file = "derivatives/cat12-12.6_vbm_qc/qc.tsv"
 
 output_path = op.join(prefixe, 'neurospin/dico/pauriau/data', study)
