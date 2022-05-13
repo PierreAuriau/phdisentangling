@@ -1,3 +1,18 @@
+# --- My files --- #
+classification/ml_predict_brain_age_with_tiv.py
+classification/ml_predict_brain_sex_with_tiv.py
+
+make_dataset/biobd/dti_make_dataset.py
+make_dataset/biobd/phenotypes_make_dataset.py
+make_dataset/biobd/participants_make_dataset.py
+
+make_dataset/bsnip1/participants_make_dataset.py
+make_dataset/bsnip1/phenotypes_make_dataset.py
+make_dataset/bsnip1/quasi-raw_dti_make_dataset.py
+
+make_dataset/schizconnect-vip-prague/participants_make_dataset.py
+make_dataset/schizconnect-vip-prague/phenotypes_make_dataset.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
