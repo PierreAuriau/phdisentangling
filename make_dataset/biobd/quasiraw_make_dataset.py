@@ -20,7 +20,7 @@ from funcutils import quasi_raw_nii2npy
 
 # path to neurospin
 if op.exists('/neurospin'):
-    prefixe = ''
+    prefixe = '/'
 else:
     prefixe = '/home/pa267054'
     
