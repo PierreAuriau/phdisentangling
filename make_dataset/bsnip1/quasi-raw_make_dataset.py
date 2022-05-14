@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.append(os.path.abspath('..'))
-from funcutils import quasi_raw_nii2npy
+from make_dataset_utils import quasi_raw_nii2npy
 
 # path to neurospin
 if op.exists('/neurospin'):
