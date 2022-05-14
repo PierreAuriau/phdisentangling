@@ -4,6 +4,8 @@
 Created on Fri May 13 15:01:27 2022
 
 @author: pa267054
+
+Cohort : BSNIP1
 """
 
 #Module import
@@ -29,9 +31,9 @@ else:
 study = "bsnip1"
 
 regex = "derivatives/quasi-raw/sub-*/ses*/anat/*preproc-linear*.nii.gz"
-qc_file = "derivatives/cat12-12.6_vbm_qc/qc.tsv"
+qc_file = "derivatives/cat12-12.7_vbm_qc/qc.tsv"
 
-output_path = op.join(prefixe, 'neurospin/dico/pauriau/data', study)
+output_path = op.join(prefixe, 'neurospin/dico/pauriau/data/cohorts', study)
 
 
 # Filename completion
