@@ -141,15 +141,16 @@ mask_arr = (mask_im.get_fdata() != 0)
 resampling = 1.5
 
 target_affine = mask_im.affine[:3,:3] * resampling
-mask_arr_res = resample_img(mask_im, target_affine, interpolation='nearest').get_fdata()
+mask_im_res = resample_img(mask_im, target_affine, interpolation='nearest')
+mask_arr_res = (mask_im_res.get_fdata() != 0)
 
 # Import numpy file
 quasiraw = np.load(op.join(data_dir, 'biobd_cat12vbm_quasi_raw_data64.npy'))
-print('quasiraw', np.shape(quasiraw))
+print('quasi-raw :', np.shape(quasiraw))
 
 # Apply mask
 quasiraw_img = quasiraw.squeeze()[:, mask_arr_res]
-
+print('quasi-raw with mask :', np.shape(quasiraw_img))
 # Import participants file
 #to modify
 participants = pd.read_csv(op.join(data_dir, 'biobd_cat12vbm_quasi_raw_participants.tsv'), sep='\t')
