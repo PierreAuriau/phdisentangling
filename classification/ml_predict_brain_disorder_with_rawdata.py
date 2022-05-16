@@ -135,20 +135,20 @@ def cv_train_test_scores_params_classif(model, y_train, y_pred_train,
 
 
 #import mask
-mask_im = nibabel.load(os.path.join(dataset_dir, "mni_cerebrum-gm-mask_1.5mm.nii.gz"))
+mask_im = nibabel.load(os.path.join(dataset_dir, "MNI152_T1_1mm_brain_mask.nii.gz"))
 mask_arr = (mask_im.get_fdata() != 0)
 
-# resampling = 1.5
+resampling = 1.5
 
-# target_affine = mask_im.affine[:3,:3] * resampling
-# mask_arr_res = resample_img(mask_im, target_affine, interpolation='nearest').get_fdata()
+target_affine = mask_im.affine[:3,:3] * resampling
+mask_arr_res = resample_img(mask_im, target_affine, interpolation='nearest').get_fdata()
 
 # Import numpy file
 quasiraw = np.load(op.join(data_dir, 'biobd_cat12vbm_quasi_raw_data64.npy'))
 print('quasiraw', np.shape(quasiraw))
 
 # Apply mask
-quasiraw_img = quasiraw.squeeze()[:, mask_arr]
+quasiraw_img = quasiraw.squeeze()[:, mask_arr_res]
 
 # Import participants file
 #to modify
