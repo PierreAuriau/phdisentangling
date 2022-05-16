@@ -74,7 +74,7 @@ dataset_dir = op.join(prefixe, "neurospin/psy_sbox/datasets")
 
 study_dir = op.join(prefixe, "neurospin/psy_sbox", study)
 
-data_dir = op.join(prefixe, 'neurospin/dico/pauriau/data', study)
+data_dir = op.join(prefixe, 'neurospin/dico/pauriau/data/cohorts', study)
 
 
 #### Classification ###
