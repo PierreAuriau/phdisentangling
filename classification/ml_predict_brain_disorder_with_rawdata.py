@@ -62,7 +62,7 @@ from sklearn.pipeline import make_pipeline
 ### Data import ###
 ###################
 if op.exists('/neurospin'):
-    prefixe = ''
+    prefixe = '/'
 else:
     prefixe = '/home/pa267054'
     
