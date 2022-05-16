@@ -19,12 +19,13 @@ import matplotlib.pyplot as plt
 
 #Neuroimaging
 import nibabel
+from nilearn.image import resample_img
 #from nitk.image import img_to_array, global_scaling, compute_brain_mask, rm_small_clusters
 #from nitk.bids import get_keys
 #from nitk.data import fetch_data
 
 #NS_dataset
-from parse_study import parse_study
+#from parse_study import parse_study
 
 # Models
 #from sklearn.decomposition import PCA
@@ -55,7 +56,7 @@ from sklearn import preprocessing
 from sklearn.pipeline import make_pipeline
 
 
-from tools import quasi_raw_nii2npy
+#from tools import quasi_raw_nii2npy
 
 ###################
 ### Data import ###
@@ -68,39 +69,12 @@ else:
 studies = {"biobd", "bsnip1", "schizconnect-vip-prague"}
 
 study = "biobd"
-path = op.join(prefixe, "neurospin/psy_sbox", study, "derivatives/quasi-raw/subjects")
 
-
-path_to_file = "/home/pa267054/neurospin/psy_sbox/bsnip1/derivatives/quasi-raw/sub-INV0AL14J6U/ses-1/anat/sub-INV0AL14J6U_ses-1_acq-103_run-1_desc-6apply_T1w.nii.gz"
 dataset_dir = op.join(prefixe, "neurospin/psy_sbox/datasets")
-im = nibabel.load(path_to_file)
-view_data = im.get_fdata()
-data = np.asarray(view_data)
-
-mask_im = nibabel.load(os.path.join(dataset_dir, "MNI152_T1_1mm_brain_mask.nii.gz"))
-mask_arr = (mask_im.get_fdata() != 0)
-img = data.squeeze()[mask_arr]
-
-#################
-
-
-
-#### Make numpy file ####
 
 study_dir = op.join(prefixe, "neurospin/psy_sbox", study)
 
-regex = "derivatives/quasi-raw/sub-12*/ses*/anat/*preproc-linear*.nii.gz"
-
-qc_file = "derivatives/cat12-12.6_vbm_qc/qc.tsv"
-
-nii_path = op.join(study_dir, regex)
-phenotype_filename = op.join(study_dir, 'participants.tsv')
-phenotype = pd.read_csv(phenotype_filename, sep='\t')
-output_path = op.join(prefixe, 'neurospin/dico/pauriau/data', study)
-dataset_name = study
-qc = op.join(study_dir, qc_file)
-quasi_raw_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=qc, sep='\t', id_type=str,
-                 check = dict(shape=(182, 218, 182), zooms=(1, 1, 1)))
+data_dir = op.join(prefixe, 'neurospin/dico/pauriau/data', study)
 
 
 #### Classification ###
@@ -160,15 +134,25 @@ def cv_train_test_scores_params_classif(model, y_train, y_pred_train,
     return info
 
 
+#import mask
+mask_im = nibabel.load(os.path.join(dataset_dir, "mni_cerebrum-gm-mask_1.5mm.nii.gz"))
+mask_arr = (mask_im.get_fdata() != 0)
+
+# resampling = 1.5
+
+# target_affine = mask_im.affine[:3,:3] * resampling
+# mask_arr_res = resample_img(mask_im, target_affine, interpolation='nearest').get_fdata()
 
 # Import numpy file
-quasiraw = np.load(op.join(output_path, 'biobd_cat12vbm_quasi_raw_data64.npy'))
+quasiraw = np.load(op.join(data_dir, 'biobd_cat12vbm_quasi_raw_data64.npy'))
+print('quasiraw', np.shape(quasiraw))
+
 # Apply mask
 quasiraw_img = quasiraw.squeeze()[:, mask_arr]
 
 # Import participants file
 #to modify
-participants = pd.read_csv(op.join(output_path, 'biobd_cat12vbm_quasi_raw_participants.tsv'), sep='\t')
+participants = pd.read_csv(op.join(data_dir, 'biobd_cat12vbm_quasi_raw_participants.tsv'), sep='\t')
 
 diagnosis = participants.loc[:, 'diagnosis'].values
 diagnosis = np.array(diagnosis ==  'control', dtype=int)
@@ -205,10 +189,7 @@ print('* Test: *')
 print(info[['acc_test', 'bacc_test', 'auc_test']])
 
 print('### Save results ###')
-info.to_csv(study + '_results.csv')
-
-
-
+info.to_csv(study + '_quasi_raw_results.csv')
 
 
 
