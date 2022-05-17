@@ -40,7 +40,10 @@ nii_path = op.join(study_dir, regex)
 phenotype_filename = op.join(study_dir, 'participants.tsv')
 phenotype = pd.read_csv(phenotype_filename, sep='\t')
 dataset_name = study
-qc = op.join(study_dir, qc_file)
+qc_filename = op.join(study_dir, qc_file)
+qc = pd.read_csv(qc_filename, sep='\t')
+qc['session'] = qc['session'].replace(1, 'v1')
+phenotype['session'] = phenotype['session'].replace('nan', 'v1')
 
 # Array creation
 quasi_raw_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=qc, sep='\t', id_type=str,
