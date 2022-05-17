@@ -4,6 +4,8 @@
 Created on Fri May 13 15:01:27 2022
 
 @author: pa267054
+
+Study : Schizconnect-vip-prague
 """
 
 #Module import
@@ -43,7 +45,7 @@ dataset_name = study
 qc_filename = op.join(study_dir, qc_file)
 qc = pd.read_csv(qc_filename, sep='\t')
 qc['session'] = qc['session'].replace(1, 'v1')
-phenotype['session'] = phenotype['session'].replace('nan', 'v1')
+phenotype['session'] = phenotype['session'].fillna('v1')
 
 # Array creation
 quasi_raw_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=qc, sep='\t', id_type=str,
