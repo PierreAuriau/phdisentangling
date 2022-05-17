@@ -227,8 +227,14 @@ def quasi_raw_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, s
             check = dict(shape=(121, 145, 121), zooms=(1.5, 1.5, 1.5)), resampling=None):
     ########################################################################################################################
     ## Add resampling argument
-    qc = pd.read_csv(qc, sep=sep) if qc is not None else None
-
+    ## old
+    #qc = pd.read_csv(qc, sep=sep) if qc is not None else None
+    
+    ## New ##
+    if type(qc) == str:
+        qc = pd.read_csv(qc, sep=sep)
+    ## New ##
+    
     if 'TIV' in phenotype:
         phenotype.rename(columns={'TIV': 'tiv'}, inplace=True)
 
@@ -250,7 +256,7 @@ def quasi_raw_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, s
               format(null_or_nan_mask.sum(), list(phenotype[null_or_nan_mask].participant_id.values)))
 
     participants_df = phenotype[~null_or_nan_mask]
-
+    print(participants_df.head())
     ########################################################################################################################
     #  Neuroimaging niftii and TIV
     #  mwp1 files
@@ -263,18 +269,22 @@ def quasi_raw_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, s
 
     print("# 1) Read all file names")
     NI_participants_df = make_participants_df(NI_filenames)
-
+    print(NI_participants_df.head())
     print("# 2) Merge nii's participant_id with participants.tsv")
     NI_participants_df, Ni_rois_df = merge_ni_df(NI_participants_df, participants_df,
                                                  qc=qc, id_type=id_type)
+    print(NI_participants_df.head())
     print('--> Remaining samples: {} / {}'.format(len(NI_participants_df), len(participants_df)))
     print('--> Remaining samples: {} / {}'.format(len(Ni_rois_df), len(participants_df)))
 
     print("# 3) Load %i images"%len(NI_participants_df), flush=True)
     ### Old :
     ### NI_arr = load_images(NI_filenames, check=check)
+    
+    ## New ##
     NI_arr = load_images(NI_participants_df,check=check, resampling=resampling)
-
+    ## New ##
+    
     print('--> {} img loaded'.format(len(NI_participants_df)))
     print("# 4) Save the new participants.tsv")
     NI_participants_df.to_csv(OUTPUT_QUASI_RAW(dataset_name, output_path, type="participants", ext="tsv"),
