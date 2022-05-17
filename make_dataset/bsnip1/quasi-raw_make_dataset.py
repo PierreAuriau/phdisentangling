@@ -31,7 +31,7 @@ else:
 # Parameters
 study = "bsnip1"
 
-regex = "derivatives/quasi-raw/sub-*/ses*/anat/sub-*desc-6apply*.nii.gz"
+regex = "derivatives/quasi-raw_2018/sub-*/ses*/anat/sub-*preproc-linear*.nii.gz"
 qc_file = "derivatives/cat12-12.6_vbm_qc_2018/qc.tsv"
 
 output_path = op.join(prefixe, 'neurospin/dico/pauriau/data/cohorts', study)
