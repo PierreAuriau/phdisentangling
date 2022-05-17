@@ -256,7 +256,6 @@ def quasi_raw_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, s
               format(null_or_nan_mask.sum(), list(phenotype[null_or_nan_mask].participant_id.values)))
 
     participants_df = phenotype[~null_or_nan_mask]
-    print(participants_df.head())
     ########################################################################################################################
     #  Neuroimaging niftii and TIV
     #  mwp1 files
@@ -269,11 +268,9 @@ def quasi_raw_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, s
 
     print("# 1) Read all file names")
     NI_participants_df = make_participants_df(NI_filenames)
-    print(NI_participants_df.head())
     print("# 2) Merge nii's participant_id with participants.tsv")
     NI_participants_df, Ni_rois_df = merge_ni_df(NI_participants_df, participants_df,
                                                  qc=qc, id_type=id_type)
-    print(NI_participants_df.head())
     print('--> Remaining samples: {} / {}'.format(len(NI_participants_df), len(participants_df)))
     print('--> Remaining samples: {} / {}'.format(len(Ni_rois_df), len(participants_df)))
 
