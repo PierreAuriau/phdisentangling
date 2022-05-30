@@ -15,7 +15,7 @@ from sklearn.model_selection import StratifiedKFold
 N_FOLDS = 5
 X_path = '/neurospin/dico/pauriau/data/cohorts/schizconnect-vip-prague/schizconnect-vip-prague_cat12vbm_mwp1-gs.npy'
 y_path = '/neurospin/dico/pauriau/data/cohorts/schizconnect-vip-prague/schizconnect-vip-prague_cat12vbm_participants.csv'
-path_to_save = '/neurospin/dico/pauriau/data/cohorts/schizconnect-vip-prague'
+path_to_save = '/neurospin/psy_sbox/analyses/202205_predict_neurodev/data/schizconnect-vip-prague'
 
 X = np.load(X_path)
 y = pd.read_csv(y_path)
