@@ -88,6 +88,11 @@ if __name__=="__main__":
     args = Args(train_data_path, train_label_path, val_data_path, val_label_path, test_data_path, test_label_path, 
                  model_path, checkpoint_dir, exp_name, metrics, labels, train, test)
     config = Config()
+    
+    #File creation
+    os.makedirs(os.path.join(args.checkpoint_dir, args.exp_name), exist_ok=True)
+    log_dir = os.path.join(args.checkpoint_dir, args.exp_name, 'tensorboard')
+    os.makedirs(log_dir, exist_ok=True)
 
     if not args.train and not args.test:
         args.train = True
@@ -97,8 +102,7 @@ if __name__=="__main__":
     
     net = densenet121(num_classes=config.num_classes)
     loss = nn.BCEWithLogitsLoss()
-    
-    
+        
     
     scheduler = 1
     
@@ -136,8 +140,7 @@ if __name__=="__main__":
 
     if args.train:
         model.training()
-        os.makedirs(os.path.join(args.checkpoint_dir, args.exp_name), exist_ok=True)
         path_to_save = os.path.join(args.checkpoint_dir, args.exp_name, 'model.mdsm')
-        model.save(path_to_save)
+        model.save_model(path_to_save)
     if args.test:
         model.testing()

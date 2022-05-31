@@ -7,11 +7,14 @@ Created on Wed May 18 17:18:09 2022
 @source : https://github.com/Duplums/bhb10k-dl-benchmark/blob/main/dl_model.py
 """
 
+import os
 import torch
 from torch.nn import DataParallel
 from metrics import METRICS
 from tqdm import tqdm
 import logging
+from torch.utils.tensorboard import SummaryWriter
+
 
 class DLModel:
 
@@ -47,6 +50,10 @@ class DLModel:
         self.config = config
         self.metrics = {m: METRICS[m] for m in args.metrics}
         self.model = DataParallel(self.model).to(self.device)
+        
+        #tensorboardd (mettre dans fonction training ou testing ?)
+        #self.writer = SummaryWriter(log_dir=os.path.join(args.checkpoint_dir, args.exp_name, 'tensorboard')) #, comment=)
+        self.writer = SummaryWriter(comment=args.exp_name)
 
 
     def training(self):
@@ -98,6 +105,12 @@ class DLModel:
             print("Epoch [{}/{}] Training loss = {:.4f}\t Validation loss = {:.4f}\t".format(
                 epoch+1, self.config.nb_epochs, training_loss, val_loss)+"\t".join(all_metrics)+all_metrics_str,
                   flush=True)
+            
+            #tensorboard
+            self.writer.add_scalar('Loss/Training', training_loss, epoch)
+            self.writer.add_scalar('Loss/Validation', val_loss, epoch)
+            for name, metric in all_metrics.items():
+                self.writer.add_scalar(name, metric)
 
             if self.scheduler is not None:
                 self.scheduler.step()
