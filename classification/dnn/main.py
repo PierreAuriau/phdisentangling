@@ -8,13 +8,13 @@ Created on Wed May 18 17:23:21 2022
 
 import json
 import os
-import argparse
+#import argparse
 from config import Config
-from engine import Engine
-from metrics import METRICS
+#from engine import Engine
+#from metrics import METRICS
 import logging
 
-import torch
+#import torch
 import torch.nn as nn
 
 from dl_model import DLModel
@@ -98,12 +98,8 @@ if __name__=="__main__":
         args.train = True
         logger.info("No mode specify: training mode is set automatically")
 
-
-    
     net = densenet121(num_classes=config.num_classes)
     loss = nn.BCEWithLogitsLoss()
-        
-    
     scheduler = 1
     
     loader_train, loader_val, loader_test = (None, None, None)
@@ -140,7 +136,7 @@ if __name__=="__main__":
 
     if args.train:
         model.training()
-        path_to_save = os.path.join(args.checkpoint_dir, args.exp_name, 'model.mdsm')
+        path_to_save = os.path.join(args.checkpoint_dir, args.exp_name, 'model.ptc')
         model.save_model(path_to_save)
     if args.test:
         model.testing()

@@ -7,7 +7,6 @@ Created on Wed May 18 17:18:09 2022
 @source : https://github.com/Duplums/bhb10k-dl-benchmark/blob/main/dl_model.py
 """
 
-import os
 import torch
 from torch.nn import DataParallel
 from metrics import METRICS
@@ -47,6 +46,7 @@ class DLModel:
         self.device = torch.device("cuda" if config.cuda else "cpu")
         if config.cuda and not torch.cuda.is_available():
             raise ValueError("No GPU found: set cuda=False parameter.")
+        print('Device : ', self.device)
         self.config = config
         self.metrics = {m: METRICS[m] for m in args.metrics}
         self.model = DataParallel(self.model).to(self.device)
@@ -110,7 +110,7 @@ class DLModel:
             self.writer.add_scalar('Loss/Training', training_loss, epoch)
             self.writer.add_scalar('Loss/Validation', val_loss, epoch)
             for name, metric in all_metrics.items():
-                self.writer.add_scalar(name, metric)
+                self.writer.add_scalar(name, metric, epoch)
 
             if self.scheduler is not None:
                 self.scheduler.step()
