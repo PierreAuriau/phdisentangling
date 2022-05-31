@@ -136,7 +136,7 @@ if __name__=="__main__":
 
     if args.train:
         model.training()
-        path_to_save = os.path.join(args.checkpoint_dir, args.exp_name, 'model.ptc')
+        path_to_save = os.path.join(args.checkpoint_dir, args.exp_name, 'model.pt')
         model.save_model(path_to_save)
     if args.test:
         model.testing()
