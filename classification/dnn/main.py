@@ -122,8 +122,9 @@ if __name__=="__main__":
     # dico_hpp['net'] = 'densenet'
     # dico_hpp['scheduler'] = 'stepLR'
     # dico_hpp['optimizer'] = 'Adam'
-    with open(os.path.join(saving_dir, 'hyperparameters.json'), 'w') as f:
-        json.dump(dico_hpp, f)
+    if args.train:
+        with open(os.path.join(saving_dir, 'hyperparameters.json'), 'w') as f:
+            json.dump(dico_hpp, f)
     
     ## Training ##
     if args.train:
@@ -183,6 +184,8 @@ if __name__=="__main__":
         #Saving directories
         test_dir = os.path.join(args.checkpoint_dir, args.exp_name, 'test')
         os.makedirs(test_dir, exist_ok=True)
+        with open(os.path.join(test_dir, 'parameters.json'), 'w') as f:
+            json.dump(dico_args, f)
         
         #Load data
         data = np.load(args.test_data_path)
