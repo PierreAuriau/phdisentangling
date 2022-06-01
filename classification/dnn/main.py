@@ -107,6 +107,9 @@ if __name__=="__main__":
     loss = nn.BCEWithLogitsLoss()
     scheduler = 1
     
+    #Parameter
+    test_dir_name = 'test'
+        
     #Saving Hyperparameters
     saving_dir = os.path.join(args.checkpoint_dir, args.exp_name)
     os.makedirs(saving_dir, exist_ok=True)
@@ -176,15 +179,16 @@ if __name__=="__main__":
     if args.test:
         assert(args.test_data_path is not None)
         assert(args.test_label_path is not None)
-        
-        #parametres
-        test_dir_name = 'test'
-        
+                
+        #Saving directories
         test_dir = os.path.join(args.checkpoint_dir, args.exp_name, 'test')
         os.makedirs(test_dir, exist_ok=True)
+        
+        #Load data
         data = np.load(args.test_data_path)
         labels = pd.read_csv(args.test_label_path)
-        labels['diagnosis'] = np.array(labels['diagnosis'] ==  'control', dtype=int)    
+        if labels['diagnosis'].dtype != 'int64':
+            labels['diagnosis'] = np.array(labels['diagnosis'] ==  'control', dtype=int) 
         dataset_test = MRIDataset(config, args, data, labels)
         loader_test = DataLoader(dataset_test,
                                 batch_size=config.batch_size,

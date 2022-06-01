@@ -114,7 +114,7 @@ class DLModel:
             self.writer.add_scalar('Loss/Training', training_loss, epoch)
             self.writer.add_scalar('Loss/Validation', val_loss, epoch)
             for name, metric in all_metrics.items():
-                self.writer.add_scalar(name, metric, epoch)
+                self.writer.add_scalar(name + '/Validation', metric, epoch)
 
             if self.scheduler is not None:
                 self.scheduler.step()
@@ -128,7 +128,8 @@ class DLModel:
         y_true = []
         with torch.no_grad():
             self.model.eval()
-            for (inputs, labels) in self.loader_val:
+            # /!\ old: for (inputs, labels) in self.loader_val:
+            for (inputs, labels) in self.loader_test:
                 pbar.update()
                 inputs = inputs.to(self.device)
                 labels = labels.to(self.device)
@@ -141,6 +142,8 @@ class DLModel:
             all_metrics[name] = metric(torch.tensor(y_pred), torch.tensor(y_true))
         all_metrics_str = "\t".join(["{}={:.2f}".format(name, m) for (name, m) in all_metrics.items()])
         print(all_metrics_str, flush=True)
+        for name, metric in all_metrics.items():
+            self.writer.add_scalar(name + '/Test', metric)
 
 
     def load_model(self, path):
