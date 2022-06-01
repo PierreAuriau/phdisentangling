@@ -14,13 +14,19 @@ from config import Config
 #from metrics import METRICS
 import logging
 
-#import torch
+import torch
 import torch.nn as nn
+
+import numpy as np
+import pandas as pd
 
 from dl_model import DLModel
 from densenet import densenet121
 from dataset import MRIDataset
 from torch.utils.data import DataLoader, RandomSampler
+
+from sklearn.model_selection import StratifiedKFold
+
 
 class Args() :
     def __init__(self, train_data_path, train_label_path, val_data_path, val_label_path, test_data_path, test_label_path, 
@@ -89,54 +95,97 @@ if __name__=="__main__":
                  model_path, checkpoint_dir, exp_name, metrics, labels, train, test)
     config = Config()
     
-    #File creation
-    os.makedirs(os.path.join(args.checkpoint_dir, args.exp_name), exist_ok=True)
-    log_dir = os.path.join(args.checkpoint_dir, args.exp_name, 'tensorboard')
-    os.makedirs(log_dir, exist_ok=True)
-
     if not args.train and not args.test:
         args.train = True
         logger.info("No mode specify: training mode is set automatically")
-
+    
+    #Saving Hyperparameters
+    saving_dir = os.path.join(args.checkpoint_dir, args.exp_name)
+    os.makedirs(saving_dir, exist_ok=True)
+    #Saving Hyperparameters
+    
+    
+    
+    #Hyper-Parameters
+    n_folds = 5
+    random_state = 42
+        
     net = densenet121(num_classes=config.num_classes)
     loss = nn.BCEWithLogitsLoss()
     scheduler = 1
     
-    loader_train, loader_val, loader_test = (None, None, None)
-    if args.train_data_path is not None:
-        dataset_train = MRIDataset(config, args, training=True)
-        loader_train = DataLoader(dataset_train,
-                                  batch_size=config.batch_size,
-                                  sampler=RandomSampler(dataset_train),
-                                  collate_fn=dataset_train.collate_fn,
-                                  pin_memory=config.pin_mem,
-                                  num_workers=config.num_cpu_workers)
-
-    if args.val_data_path is not None:
-        dataset_val = MRIDataset(config, args, validation=True)
-        loader_val = DataLoader(dataset_val,
-                                batch_size=config.batch_size,
-                                collate_fn=dataset_val.collate_fn,
-                                pin_memory=config.pin_mem,
-                                num_workers=config.num_cpu_workers)
-
-    if args.test_data_path is not None:
-        dataset_test = MRIDataset(config, args, test=True)
+    ## Training ##
+    if args.train:
+        #Loading data
+        if args.train:
+            assert(args.train_data_path is not None)
+            assert(args.train_label_path is not None)
+            data = np.load(args.train_data_path)
+            labels = pd.read_csv(args.train_label_path)
+            if labels['diagnosis'].dtype != 'int64':
+                labels['diagnosis'] = np.array(labels['diagnosis'] ==  'control', dtype=int)
+            labels_arr = labels['diagnosis'].values
+        
+        #Cross-Validation
+        skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=random_state)
+    
+        for i, (train_index, val_index) in enumerate(skf.split(data, labels_arr)):
+            
+            #Saving directories
+            fold_dir = os.path.join(saving_dir, 'fold_', str(i))
+            os.makedirs(fold_dir, exist_ok=True)
+            os.makedirs(os.path.join(fold_dir, 'tensorboard'), exist_ok=True)            
+            
+            train_data, val_data = data[train_index], data[val_index] 
+            train_labels, val_labels = labels.iloc[train_index], labels.iloc[val_index]
+                    
+            dataset_train = MRIDataset(config, args, train_data, train_labels)
+            loader_train = DataLoader(dataset_train,
+                                      batch_size=config.batch_size,
+                                      sampler=RandomSampler(dataset_train),
+                                      collate_fn=dataset_train.collate_fn,
+                                      pin_memory=config.pin_mem,
+                                      num_workers=config.num_cpu_workers)
+    
+            dataset_val = MRIDataset(config, args, val_data, val_labels)
+            loader_val = DataLoader(dataset_val,
+                                    batch_size=config.batch_size,
+                                    collate_fn=dataset_val.collate_fn,
+                                    pin_memory=config.pin_mem,
+                                    num_workers=config.num_cpu_workers)
+            
+            #Loading model
+            model = DLModel(net, loss, config, args,
+                                 loader_train=loader_train,
+                                 loader_val=loader_val,
+                                 scheduler=scheduler, log_dir=fold_dir)
+            
+            model.training()
+            path_to_save = os.path.join(fold_dir, 'model.pt')
+            model.save_model(path_to_save)
+    
+    
+    ## Test ##
+    if args.test:
+        assert(args.test_data_path is not None)
+        assert(args.test_label_path is not None)
+        
+        test_dir = os.path.join(args.checkpoint_dir, args.exp_name, 'test')
+        os.makedirs(test_dir, exist_ok=True)
+        data = np.load(args.test_data_path)
+        labels = pd.read_csv(args.test_label_path)
+        labels['diagnosis'] = np.array(labels['diagnosis'] ==  'control', dtype=int)    
+        dataset_test = MRIDataset(config, args, data, labels)
         loader_test = DataLoader(dataset_test,
                                 batch_size=config.batch_size,
                                 collate_fn=dataset_test.collate_fn,
                                 pin_memory=config.pin_mem,
                                 num_workers=config.num_cpu_workers)
-
-    model = DLModel(net, loss, config, args,
-                         loader_train=loader_train,
-                         loader_val=loader_val,
-                         loader_test=loader_test,
-                         scheduler=scheduler)
-
-    if args.train:
-        model.training()
-        path_to_save = os.path.join(args.checkpoint_dir, args.exp_name, 'model.pt')
-        model.save_model(path_to_save)
-    if args.test:
+        
+        #Loading model       
+        model = DLModel(net, loss, config, args,
+                             loader_test=loader_test,
+                             scheduler=scheduler, 
+                             log_dir=test_dir)
+    
         model.testing()

@@ -17,9 +17,10 @@ from transformer import Transformer
 
 class MRIDataset(Dataset):
 
-    def __init__(self, config, args, training=False, validation=False, test=False, **kwargs):
+    def __init__(self, config, args, data, labels, **kwargs):
         super().__init__(**kwargs)
-        assert training + validation + test == 1
+        
+        #assert training + validation + test == 1
 
         self.transforms = Transformer(with_channel=True)
         self.config = config
@@ -28,17 +29,22 @@ class MRIDataset(Dataset):
         self.transforms.register(crop, probability=1.0, shape=(1, 121, 128, 121), with_channel=True)
         self.transforms.register(padding, probability=1.0, shape=(1, 128, 128, 128), with_channel=True)
         self.transforms.register(normalize, probability=1.0, with_channel=True)
+        
         # if (not validation) and (not test):
         #     self.add_data_augmentations(self.transforms, args.da)
-        if training:
-            self.data = np.load(args.train_data_path)
-            self.labels = pd.read_csv(args.train_label_path)
-        elif validation:
-            self.data = np.load(args.val_data_path)
-            self.labels = pd.read_csv(args.val_label_path)
-        elif test:
-            self.data = np.load(args.test_data_path)
-            self.labels = pd.read_csv(args.test_label_path)
+        
+        # if training:
+        #     self.data = np.load(args.train_data_path)
+        #     self.labels = pd.read_csv(args.train_label_path)
+        # elif validation:
+        #     self.data = np.load(args.val_data_path)
+        #     self.labels = pd.read_csv(args.val_label_path)
+        # elif test:
+        #     self.data = np.load(args.test_data_path)
+        #     self.labels = pd.read_csv(args.test_label_path)
+        
+        self.data = data
+        self.labels = labels
     
     def collate_fn(self, list_samples):
         list_x = torch.stack([torch.as_tensor(x, dtype=torch.float) for (x, y) in list_samples], dim=0)
@@ -48,11 +54,12 @@ class MRIDataset(Dataset):
     def __getitem__(self, idx):
         x = self.transforms(self.data[idx])
         labels = self.labels[self.args.labels].values[idx]
-
         return (x, labels)
 
     def __len__(self):
         return len(self.data)
+
+# ------------------------------------------------------------------------------------------------------------------------------------------------#
     
 def normalize(arr, mean=0.0, std=1.0, eps=1e-8):
     return std * (arr - np.mean(arr))/(np.std(arr) + eps) + mean
@@ -124,8 +131,3 @@ def crop(arr, shape, crop_type="center", resize=False, keep_dim=False):
         return arr_copy
 
     return arr[tuple(indexes)]
-    
-# _____________________________________________________________________________________________________________________________ #
-
-# _____________________________________________________________________________________________________________________________ #
-

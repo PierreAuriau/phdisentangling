@@ -7,6 +7,7 @@ Created on Wed May 18 17:18:09 2022
 @source : https://github.com/Duplums/bhb10k-dl-benchmark/blob/main/dl_model.py
 """
 
+import os
 import torch
 from torch.nn import DataParallel
 from metrics import METRICS
@@ -17,7 +18,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 class DLModel:
 
-    def __init__(self, net, loss, config, args, loader_train=None, loader_val=None, loader_test=None, scheduler=None):
+    def __init__(self, net, loss, config, args, loader_train=None, loader_val=None, loader_test=None, scheduler=None, log_dir=None):
         """
         Parameters
         ----------
@@ -51,14 +52,17 @@ class DLModel:
         self.metrics = {m: METRICS[m] for m in args.metrics}
         self.model = DataParallel(self.model).to(self.device)
         
-        #tensorboardd (mettre dans fonction training ou testing ?)
-        #self.writer = SummaryWriter(log_dir=os.path.join(args.checkpoint_dir, args.exp_name, 'tensorboard')) #, comment=)
-        self.writer = SummaryWriter(comment=args.exp_name)
+        #tensorboard (mettre dans fonction training ou testing ?)
+        if log_dir is not None:
+            self.writer = SummaryWriter(log_dir=log_dir)
+        else:
+            self.writer = SummaryWriter(comment=args.exp_name)
 
 
     def training(self):
-        print(self.loss)
-        print(self.optimizer)
+        print('Loss : ', self.loss)
+        print('Optimizer :', self.optimizer)
+        print('Scheduler :', self.scheduler)
 
         for epoch in range(self.config.nb_epochs):
             ## Training step
