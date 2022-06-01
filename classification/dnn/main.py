@@ -29,22 +29,9 @@ from sklearn.model_selection import StratifiedKFold
 
 
 class Args() :
-    def __init__(self, train_data_path, train_label_path, val_data_path, val_label_path, test_data_path, test_label_path, 
-                 model_path, checkpoint_dir, exp_name, metrics, labels, train, test) :
-        
-        self.train_data_path = train_data_path
-        self.train_label_path = train_label_path
-        self.val_data_path = val_data_path
-        self.val_label_path = val_label_path
-        self.test_data_path = test_data_path
-        self.test_label_path = test_label_path
-        self.model_path = model_path
-        self.checkpoint_dir = checkpoint_dir
-        self.exp_name = exp_name
-        self.metrics = metrics
-        self.train = train
-        self.test = test
-        self.labels = labels
+    def __init__(self, dico) :
+        for k,v in dico.items():
+            setattr(self, k, v)
 
 if __name__=="__main__":
 
@@ -76,23 +63,8 @@ if __name__=="__main__":
     
     
     dico_args = json.load(open('args.json', 'r'))
-    train_data_path = dico_args['train_data_path']
-    train_label_path = dico_args['train_label_path']
-    val_data_path = dico_args['val_data_path']
-    val_label_path = dico_args['val_label_path']
-    test_data_path = dico_args['test_data_path']
-    test_label_path = dico_args['test_label_path']
-    model_path = dico_args['model_path']
-    checkpoint_dir = dico_args['checkpoint_dir']
-    exp_name = dico_args['exp_name']
-    metrics = dico_args['metrics']
-    labels = dico_args['labels']
-    train = dico_args['train']
-    test = dico_args['test']
-    
-    
-    args = Args(train_data_path, train_label_path, val_data_path, val_label_path, test_data_path, test_label_path, 
-                 model_path, checkpoint_dir, exp_name, metrics, labels, train, test)
+
+    args = Args(dico_args)
     config = Config()
     
     if not args.train and not args.test:
@@ -142,6 +114,8 @@ if __name__=="__main__":
         skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=random_state)
     
         for i, (train_index, val_index) in enumerate(skf.split(data, labels_arr)):
+            
+            print('* Cross Validation n° ', i, ' *')
             
             #Saving directories
             fold_dir = os.path.join(saving_dir, 'fold_' + str(i))
