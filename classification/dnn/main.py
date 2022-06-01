@@ -98,14 +98,7 @@ if __name__=="__main__":
     if not args.train and not args.test:
         args.train = True
         logger.info("No mode specify: training mode is set automatically")
-    
-    #Saving Hyperparameters
-    saving_dir = os.path.join(args.checkpoint_dir, args.exp_name)
-    os.makedirs(saving_dir, exist_ok=True)
-    #Saving Hyperparameters
-    
-    
-    
+        
     #Hyper-Parameters
     n_folds = 5
     random_state = 42
@@ -113,6 +106,21 @@ if __name__=="__main__":
     net = densenet121(num_classes=config.num_classes)
     loss = nn.BCEWithLogitsLoss()
     scheduler = 1
+    
+    #Saving Hyperparameters
+    saving_dir = os.path.join(args.checkpoint_dir, args.exp_name)
+    os.makedirs(saving_dir, exist_ok=True)
+    #Saving Hyperparameters
+    dico_hpp = dico_args.copy()
+    dico_hpp.update(config.__dict__)
+    dico_hpp ['n_folds'] = n_folds
+    dico_hpp['random_state'] = random_state
+    # dico_hpp['loss'] = 'bce'
+    # dico_hpp['net'] = 'densenet'
+    # dico_hpp['scheduler'] = 'stepLR'
+    # dico_hpp['optimizer'] = 'Adam'
+    with open(os.path.join(saving_dir, 'hyperparameters.json'), 'w') as f:
+        json.dump(dico_hpp, f)
     
     ## Training ##
     if args.train:
@@ -132,9 +140,8 @@ if __name__=="__main__":
         for i, (train_index, val_index) in enumerate(skf.split(data, labels_arr)):
             
             #Saving directories
-            fold_dir = os.path.join(saving_dir, 'fold_', str(i))
-            os.makedirs(fold_dir, exist_ok=True)
-            os.makedirs(os.path.join(fold_dir, 'tensorboard'), exist_ok=True)            
+            fold_dir = os.path.join(saving_dir, 'fold_' + str(i))
+            os.makedirs(fold_dir, exist_ok=True)  
             
             train_data, val_data = data[train_index], data[val_index] 
             train_labels, val_labels = labels.iloc[train_index], labels.iloc[val_index]
@@ -169,6 +176,9 @@ if __name__=="__main__":
     if args.test:
         assert(args.test_data_path is not None)
         assert(args.test_label_path is not None)
+        
+        #parametres
+        test_dir_name = 'test'
         
         test_dir = os.path.join(args.checkpoint_dir, args.exp_name, 'test')
         os.makedirs(test_dir, exist_ok=True)
