@@ -16,8 +16,9 @@ import sys
 
 import numpy as np
 import pandas as pd
-
-sys.path.append(op.abspath(os.path.dirname(sys.argv[0])))
+path = op.abspath(os.path.dirname(sys.argv[0]))
+sys.path.append(path)
+print(path)
 from make_dataset_utils import quasi_raw_nii2npy
 
 # path to neurospin
