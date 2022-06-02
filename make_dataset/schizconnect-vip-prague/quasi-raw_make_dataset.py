@@ -16,7 +16,7 @@ import sys
 
 import numpy as np
 import pandas as pd
-path = op.abspath(os.path.dirname(sys.argv[0]))
+path = op.abspath(op.dirname(op.dirname(sys.argv[0])))
 sys.path.append(path)
 print(path)
 from make_dataset_utils import quasi_raw_nii2npy
@@ -34,7 +34,7 @@ study = "schizconnect-vip-prague"
 regex = "derivatives/quasi-raw/sub-*/ses*/anat/*preproc-linear*.nii.gz"
 qc_file = "derivatives/cat12-12.6_vbm_qc/qc.tsv"
 
-output_path = op.join(prefixe, '/neurospin/psy_sbox/analyses/202205_predict_neurodev/data/schizconnect-vip-prague/', study)
+output_path = op.join(prefixe, 'neurospin/psy_sbox/analyses/202205_predict_neurodev/data/', study)
 
 
 # Filename completion
