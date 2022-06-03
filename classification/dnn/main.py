@@ -154,18 +154,12 @@ if __name__=="__main__":
     if args.test:
         assert(args.test_data_path is not None)
         assert(args.test_label_path is not None)
-                
-        #Saving directories
-        test_dir = os.path.join(args.checkpoint_dir, args.exp_name, 'test')
-        os.makedirs(test_dir, exist_ok=True)
-        with open(os.path.join(test_dir, 'parameters.json'), 'w') as f:
-            json.dump(dico_args, f)
-        
+                        
         #Load data
         data = np.load(args.test_data_path)
         labels = pd.read_csv(args.test_label_path)
         if labels['diagnosis'].dtype != 'int64':
-            labels['diagnosis'] = np.array(labels['diagnosis'] ==  'control', dtype=int) 
+            labels['diagnosis'] = np.array(labels['diagnosis'] ==  'control', dtype=int)
         dataset_test = MRIDataset(config, args, data, labels)
         loader_test = DataLoader(dataset_test,
                                 batch_size=config.batch_size,
@@ -173,10 +167,14 @@ if __name__=="__main__":
                                 pin_memory=config.pin_mem,
                                 num_workers=config.num_cpu_workers)
         
-        #Loading model       
-        model = DLModel(net, loss, config, args,
+        for i in range(n_folds):
+            args.model_path = os.path.join(saving_dir, 'fold_'+str(i), 'model.pt')
+            fold_dir = os.path.join(saving_dir, 'fold_' + str(i))
+
+            #Loading model       
+            model = DLModel(net, loss, config, args,
                              loader_test=loader_test,
                              scheduler=scheduler, 
-                             log_dir=test_dir)
+                             log_dir=fold_dir)
     
-        model.testing()
+            model.testing()

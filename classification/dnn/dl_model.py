@@ -14,11 +14,12 @@ from metrics import METRICS
 from tqdm import tqdm
 import logging
 from torch.utils.tensorboard import SummaryWriter
+import pandas as pd
 
 
 class DLModel:
 
-    def __init__(self, net, loss, config, args, loader_train=None, loader_val=None, loader_test=None, scheduler=None, log_dir=None):
+    def __init__(self, net, loss, config, args, loader_train=None, loader_val=None, loader_test=None, scheduler=None, log_dir=''):
         """
         Parameters
         ----------
@@ -52,17 +53,16 @@ class DLModel:
         self.metrics = {m: METRICS[m] for m in args.metrics}
         self.model = DataParallel(self.model).to(self.device)
         
-        #tensorboard (mettre dans fonction training ou testing ?)
-        if log_dir is not None:
-            self.writer = SummaryWriter(log_dir=log_dir)
-        else:
-            self.writer = SummaryWriter(comment=args.exp_name)
-
+        self.log_dir = log_dir
+        self.test_data_path = args.test_data_path if args.test else None
 
     def training(self):
         print('Loss : ', self.loss)
         print('Optimizer :', self.optimizer)
         print('Scheduler :', self.scheduler)
+        
+        #tensorboard
+        self.writer = SummaryWriter(log_dir=self.log_dir)
 
         for epoch in range(self.config.nb_epochs):
             ## Training step
@@ -118,6 +118,9 @@ class DLModel:
 
             if self.scheduler is not None:
                 self.scheduler.step()
+        
+        #tensorboard
+        self.writer.close()
 
 
     def testing(self):
@@ -142,9 +145,17 @@ class DLModel:
             all_metrics[name] = metric(torch.tensor(y_pred), torch.tensor(y_true))
         all_metrics_str = "\t".join(["{}={:.2f}".format(name, m) for (name, m) in all_metrics.items()])
         print(all_metrics_str, flush=True)
-        for name, metric in all_metrics.items():
-            self.writer.add_scalar(name + '/test', metric)
-
+        
+        #saving results
+        path_to_results = os.path.join(self.log_dir, "test.csv")
+        df_results = pd.DataFrame({'dataset': [self.test_data_path]})
+        for name,metric in all_metrics.items():
+            df_results[name] = metric
+        if os.path.exists(path_to_results):
+            df_previous_results = pd.read_csv(path_to_results)
+            df_results = pd.concat([df_previous_results, df_results], ignore_index=True)
+        df_results.to_csv(path_to_results, index=False)
+        
 
     def load_model(self, path):
         checkpoint = None
