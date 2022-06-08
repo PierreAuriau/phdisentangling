@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 """
 Created on Wed May 18 17:23:21 2022
 
-@source : https://github.com/Duplums/bhb10k-dl-benchmark/blob/main/main.py
 """
 
 import json
@@ -13,6 +13,8 @@ from config import Config
 #from engine import Engine
 #from metrics import METRICS
 import logging
+import logging.config
+import datetime
 
 import torch
 import torch.nn as nn
@@ -34,9 +36,7 @@ class Args() :
             setattr(self, k, v)
 
 if __name__=="__main__":
-
-    logger = logging.getLogger("pynet")
-
+    
     # parser = argparse.ArgumentParser()
 
     # parser.add_argument("--train_data_path", type=str)
@@ -62,11 +62,28 @@ if __name__=="__main__":
     #engine.run(training=args.train, testing=args.test)
     
     
+    
     dico_args = json.load(open('args.json', 'r'))
 
     args = Args(dico_args)
     config = Config()
     
+    #Create saving directory
+    def to_str(entier):
+        return '0' + str(entier) if entier < 10 else str(entier)
+    today = datetime.date.today()
+    dir_name = str(today.year) + to_str(today.month) + to_str(today.day) + '_' + args.exp_name
+    saving_dir = os.path.join(args.checkpoint_dir, dir_name)
+    os.makedirs(saving_dir, exist_ok=True)
+    
+    ## Logging ##
+    #console and file handlers
+    log_config = json.load(open('logging.json', 'r'))
+    log_config['handlers']['file']['filename'] = os.path.join(saving_dir, 'info.log')
+    
+    logging.config.dictConfig(log_config)
+    logger = logging.getLogger(__name__)
+        
     if not args.train and not args.test:
         args.train = True
         logger.info("No mode specify: training mode is set automatically")
@@ -79,12 +96,7 @@ if __name__=="__main__":
     loss = nn.BCEWithLogitsLoss()
     scheduler = 1
     
-    #Parameter
-    test_dir_name = 'test'
-        
-    #Saving Hyperparameters
-    saving_dir = os.path.join(args.checkpoint_dir, args.exp_name)
-    os.makedirs(saving_dir, exist_ok=True)
+
     #Saving Hyperparameters
     dico_hpp = dico_args.copy()
     dico_hpp.update(config.__dict__)
@@ -115,7 +127,7 @@ if __name__=="__main__":
     
         for i, (train_index, val_index) in enumerate(skf.split(data, labels_arr)):
             
-            print('* Cross Validation n° ', i, ' *')
+            logger.info('# Cross Validation ' + str(i) + ' #')
             
             #Saving directories
             fold_dir = os.path.join(saving_dir, 'fold_' + str(i))

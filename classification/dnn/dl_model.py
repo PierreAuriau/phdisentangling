@@ -180,4 +180,4 @@ class DLModel:
                 
     def save_model(self, path):
       torch.save(self.model.state_dict(), path)
-      print('Model saved')
+      self.logger.info('Model saved')
