@@ -15,6 +15,7 @@ from tqdm import tqdm
 import logging
 from torch.utils.tensorboard import SummaryWriter
 import pandas as pd
+from early_stopping import EarlyStopping
 
 
 class DLModel:
@@ -31,7 +32,7 @@ class DLModel:
         scheduler (optional)
         """
         super().__init__()
-        self.logger = logging.getLogger("DLBenchmark")
+        self.logger = logging.getLogger("DLModel")
         self.loss = loss
         self.model = net
         self.optimizer = torch.optim.Adam(net.parameters(), lr=config.lr, weight_decay=config.weight_decay)
@@ -63,6 +64,10 @@ class DLModel:
         
         #tensorboard
         self.writer = SummaryWriter(log_dir=self.log_dir)
+        
+        #early stopping
+        if self.config.early_stopping:
+            early_stopping = EarlyStopping(patience=self.config.es_patience, verbose=True)
 
         for epoch in range(self.config.nb_epochs):
             ## Training step
@@ -115,7 +120,13 @@ class DLModel:
             self.writer.add_scalar('loss/validation', val_loss, epoch)
             for name, metric in all_metrics.items():
                 self.writer.add_scalar(name + '/validation', metric, epoch)
-
+                
+            #early stopping
+            early_stopping(val_loss, self.model)
+            if early_stopping.early_stop:   
+                break
+            
+            #scheduler
             if self.scheduler is not None:
                 self.scheduler.step()
         
