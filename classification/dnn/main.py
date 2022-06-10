@@ -178,9 +178,10 @@ if __name__=="__main__":
                                 collate_fn=dataset_test.collate_fn,
                                 pin_memory=config.pin_mem,
                                 num_workers=config.num_cpu_workers)
+        model_path = args.model_path
         
         for i in range(n_folds):
-            args.model_path = os.path.join(saving_dir, 'fold_'+str(i), 'model.pt')
+            args.model_path = os.path.join(model_path, 'fold_'+str(i), 'model.pt')
             fold_dir = os.path.join(saving_dir, 'fold_' + str(i))
 
             #Loading model       
