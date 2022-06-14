@@ -122,9 +122,10 @@ class DLModel:
                 self.writer.add_scalar(name + '/validation', metric, epoch)
                 
             #early stopping
-            early_stopping(val_loss, self.model)
-            if early_stopping.early_stop:   
-                break
+            if self.config.early_stopping:
+                early_stopping(val_loss, self.model)
+                if early_stopping.early_stop:   
+                    break
             
             #scheduler
             if self.scheduler is not None:
