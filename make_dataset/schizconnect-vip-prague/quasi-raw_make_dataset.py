@@ -13,6 +13,7 @@ Study : Schizconnect-vip-prague
 import os
 import os.path as op
 import sys
+import glob
 
 import numpy as np
 import pandas as pd
@@ -34,7 +35,7 @@ study = "schizconnect-vip-prague"
 regex = "derivatives/quasi-raw/sub-*/ses*/anat/*preproc-linear*.nii.gz"
 qc_file = "derivatives/cat12-12.6_vbm_qc/qc.tsv"
 
-output_path = op.join(prefixe, 'neurospin/psy_sbox/analyses/202205_predict_neurodev/data/', study)
+output_path = op.join(prefixe, 'neurospin/psy_sbox/analyses/202205_predict_neurodev/data/', study, study)
 
 
 # Filename completion
@@ -47,6 +48,10 @@ qc_filename = op.join(study_dir, qc_file)
 qc = pd.read_csv(qc_filename, sep='\t')
 qc['session'] = qc['session'].replace(1, 'v1')
 phenotype['session'] = phenotype['session'].fillna('v1')
+
+#Test
+assert(len(glob.glob(nii_path)) != 0), 'nii_path regex does not exist : {}'.format(nii_path) 
+assert(op.exists(output_path)), 'output_path does not exist : {}'.format(output_path)
 
 # Array creation
 quasi_raw_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=qc, sep='\t', id_type=str,
