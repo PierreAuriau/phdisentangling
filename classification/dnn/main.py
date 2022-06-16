@@ -182,7 +182,7 @@ if __name__=="__main__":
         
         for i in range(n_folds):
             args.model_path = os.path.join(model_path, 'fold_'+str(i), 'model.pt')
-            fold_dir = os.path.join(saving_dir, 'fold_' + str(i))
+            fold_dir = os.path.join(model_path, 'fold_' + str(i))
 
             #Loading model       
             model = DLModel(net, loss, config, args,
