@@ -69,20 +69,27 @@ if __name__=="__main__":
     config = Config()
     
     #Create saving directory
-    def to_str(entier):
-        return '0' + str(entier) if entier < 10 else str(entier)
-    today = datetime.date.today()
-    dir_name = str(today.year) + to_str(today.month) + to_str(today.day) + '_' + args.exp_name
-    saving_dir = os.path.join(args.checkpoint_dir, dir_name)
-    os.makedirs(saving_dir, exist_ok=True)
+    if args.train:
+        def to_str(entier):
+            return '0' + str(entier) if entier < 10 else str(entier)
+        today = datetime.date.today()
+        dir_name = str(today.year) + to_str(today.month) + to_str(today.day) + '_' + args.exp_name
+        saving_dir = os.path.join(args.checkpoint_dir, dir_name)
+        os.makedirs(saving_dir, exist_ok=True)
+    
+    else:
+        saving_dir = args.model_path
     
     ## Logging ##
     #console and file handlers
     log_config = json.load(open('logging.json', 'r'))
-    log_config['handlers']['file']['filename'] = os.path.join(saving_dir, 'info.log')
+    if args.train:
+        log_config['handlers']['file']['filename'] = os.path.join(saving_dir, 'train.log')
+    else:
+        log_config['handlers']['file']['filename'] = os.path.join(saving_dir, 'test.log')       
     
     logging.config.dictConfig(log_config)
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger("main")
         
     if not args.train and not args.test:
         args.train = True

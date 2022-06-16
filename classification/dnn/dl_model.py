@@ -33,6 +33,7 @@ class DLModel:
         """
         super().__init__()
         self.logger = logging.getLogger("DLModel")
+        self.logger.setLevel(logging.INFO)
         self.loss = loss
         self.model = net
         self.optimizer = torch.optim.Adam(net.parameters(), lr=config.lr, weight_decay=config.weight_decay)
