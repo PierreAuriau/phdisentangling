@@ -25,12 +25,12 @@ sbj_dir = os.path.join(morpho_dir, 'subjects')
 Lregex = 'sub-*/t1mri/ses-*/default_analysis/segmentation/Lskeleton_sub-*.nii.gz'
 Rregex = 'sub-*/t1mri/ses-*/default_analysis/segmentation/Rskeleton_sub-*.nii.gz'
 
-output_path = os.path.join(pre, 'neurospin/psy_sbox/analyses/202205_predict_neurodev', study)
+output_path = os.path.join(pre, 'neurospin/psy_sbox/analyses/202205_predict_neurodev/data', study)
 qc_file = None
 
 # Filename completion
-nii_path_l = os.path.join(study_dir, Lregex)
-nii_path_r = os.path.join(study_dir, Rregex)
+nii_path_l = os.path.join(sbj_dir, Lregex)
+nii_path_r = os.path.join(sbj_dir, Rregex)
 phenotype_filename = os.path.join(study_dir, 'participants.tsv')
 phenotype = pd.read_csv(phenotype_filename, sep='\t')
 dataset_name = study
