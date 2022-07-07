@@ -36,6 +36,9 @@ phenotype = pd.read_csv(phenotype_filename, sep='\t')
 dataset_name = study
 qc = os.path.join(study_dir, qc_file) if qc_file is not None else None
 
+
+phenotype['session'].replace('V1', '1')
+phenotype['session'].fillna('1')
 # Array creation
 skeleton_nii2npy(nii_path_l, phenotype, dataset_name, output_path, qc=qc, sep='\t', id_type=str,
                  check = None, side='L')
