@@ -39,4 +39,4 @@ qc = os.path.join(study_dir, qc_file) if qc_file is not None else None
 
 # Array creation
 skeleton_nii2npy(nii_path_l, phenotype, dataset_name, output_path, qc=qc, sep='\t', id_type=str,
-                 check = None, side='L')
+                 check = {}, side='L')
