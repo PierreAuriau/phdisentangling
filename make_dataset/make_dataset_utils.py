@@ -481,7 +481,7 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
                               index=False, sep=sep)
     print("# 2) Merge nii's participant_id with participants.tsv")
     NI_participants_df, Ni_rois_df = merge_ni_df(NI_participants_df, participants_df,
-                                                 qc=qc, id_type=id_type)
+                                                 qc=qc, id_type=id_type, session_regex='ses-([^_/]+)')
     print('--> Remaining samples: {} / {}'.format(len(NI_participants_df), len(participants_df)))
     print('--> Remaining samples: {} / {}'.format(len(Ni_rois_df), len(participants_df)))
 
