@@ -26,7 +26,8 @@ Lregex = 'sub-*/t1mri/ses-*/default_analysis/segmentation/Lskeleton_sub-*.nii.gz
 Rregex = 'sub-*/t1mri/ses-*/default_analysis/segmentation/Rskeleton_sub-*.nii.gz'
 
 output_path = os.path.join(pre, 'neurospin/psy_sbox/analyses/202205_predict_neurodev/data', study)
-qc_file = None
+qc_file = "derivatives/cat12-12.6_vbm_qc/qc.tsv"
+
 
 # Filename completion
 nii_path_l = os.path.join(sbj_dir, Lregex)
