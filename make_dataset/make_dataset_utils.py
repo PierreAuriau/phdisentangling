@@ -74,7 +74,10 @@ def OUTPUT_DTI(dataset, output_path, modality='dwi', mri_preproc='tbss', type=No
     return os.path.join(output_path, dataset + "_" + modality+ "_" + mri_preproc +
                  ("" if type is None else "_" + type) + "." + ext)
 
-
+def OUTPUT_SKELETON(dataset, output_path, modality='morphologist', mri_preproc='skeleton', type=None, ext=None, side=None):
+    # type data64, or data32
+    return os.path.join(output_path, dataset + "_" + modality + "_" + ("" if side is None else side) + mri_preproc +
+                  ("" if type is None else "_" + type) + "." + ext)
 
 def merge_ni_df(NI_participants_df, participants_df, qc=None, participant_id="participant_id",
                 id_type=str, session_regex=None, run_regex=None, tiv_columns=[], participants_columns=[]):
@@ -231,7 +234,7 @@ def quasi_raw_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, s
     #qc = pd.read_csv(qc, sep=sep) if qc is not None else None
     
     ## New ##
-    if type(qc) == str:
+    if isinstance(qc, str):
         qc = pd.read_csv(qc, sep=sep)
     ## New ##
     
@@ -426,6 +429,77 @@ def cat12_nii2npy(nii_path, phenotype, dataset, output_path, qc=None, sep='\t', 
     np.save(vbm_filename, NI_arr)
 
     return participants_filename, rois_filename, vbm_filename
+
+def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, sep='\t', id_type=str,
+            check = dict(shape=(121, 145, 121), zooms=(1.5, 1.5, 1.5)), resampling=None, side=None):
+    ########################################################################################################################
+    ## Add resampling argument
+    ## old
+    #qc = pd.read_csv(qc, sep=sep) if qc is not None else None
+    
+    ## New ##
+    if isinstance(qc, str):
+        qc = pd.read_csv(qc, sep=sep)
+    ## New ##
+    
+    if 'TIV' in phenotype:
+        phenotype.rename(columns={'TIV': 'tiv'}, inplace=True)
+
+    keys_required = ['participant_id', 'age', 'sex', 'tiv', 'diagnosis']
+
+    assert set(keys_required) <= set(phenotype.columns), \
+        "Missing keys in {} that are required to compute the npy array: {}".format(phenotype,
+                                                                                   set(keys_required)-set(phenotype.columns))
+
+    ## TODO: change this condition according to session and run in phenotype.tsv
+    #assert len(set(phenotype.participant_id)) == len(phenotype), "Unexpected number of participant_id"
+
+    # Rm participants with missing keys_required
+    null_or_nan_mask = [False for _ in range(len(phenotype))]
+    for key in keys_required:
+        null_or_nan_mask |= getattr(phenotype, key).isnull() | getattr(phenotype, key).isna()
+    if null_or_nan_mask.sum() > 0:
+        print('Warning: {} participant_id will not be considered because of missing required values:\n{}'. \
+              format(null_or_nan_mask.sum(), list(phenotype[null_or_nan_mask].participant_id.values)))
+
+    participants_df = phenotype[~null_or_nan_mask]
+    ########################################################################################################################
+    #  Neuroimaging niftii and TIV
+    #  mwp1 files
+      #  excpected image dimensions
+    NI_filenames = glob.glob(nii_path)
+    ########################################################################################################################
+    #  Load images, intersect with pop and do preprocessing and dump 5d npy
+    print("###########################################################################################################")
+    print("#", dataset_name)
+
+    print("# 1) Read all file names")
+    NI_participants_df = make_participants_df(NI_filenames)
+    print("# 2) Merge nii's participant_id with participants.tsv")
+    NI_participants_df, Ni_rois_df = merge_ni_df(NI_participants_df, participants_df,
+                                                 qc=qc, id_type=id_type)
+    print('--> Remaining samples: {} / {}'.format(len(NI_participants_df), len(participants_df)))
+    print('--> Remaining samples: {} / {}'.format(len(Ni_rois_df), len(participants_df)))
+
+    print("# 3) Load %i images"%len(NI_participants_df), flush=True)
+    ### Old :
+    ### NI_arr = load_images(NI_filenames, check=check)
+    
+    ## New ##
+    NI_arr = load_images(NI_participants_df,check=check, resampling=resampling)
+    ## New ##
+    
+    print('--> {} img loaded'.format(len(NI_participants_df)))
+    print("# 4) Save the new participants.tsv")
+    NI_participants_df.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv"),
+                              index=False, sep=sep, side=side)
+    print("# 5) Save the raw npy file (with shape {})".format(NI_arr.shape))
+    np.save(OUTPUT_SKELETON(dataset_name, output_path, type="data64", ext="npy", side=side), NI_arr)
+
+    ######################################################################################################################
+    # Deallocate the memory
+    del NI_arr
+
 
 
 def global_scaling(NI_arr, axis0_values=None, target=1500):
