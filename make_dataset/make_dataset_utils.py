@@ -468,6 +468,7 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
     #  mwp1 files
       #  excpected image dimensions
     NI_filenames = glob.glob(nii_path)
+    print(len(NI_filenames))
     ########################################################################################################################
     #  Load images, intersect with pop and do preprocessing and dump 5d npy
     print("###########################################################################################################")
@@ -475,6 +476,9 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
 
     print("# 1) Read all file names")
     NI_participants_df = make_participants_df(NI_filenames)
+    print(len(NI_participants_df))
+    NI_participants_df.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side=side),
+                              index=False, sep=sep)
     print("# 2) Merge nii's participant_id with participants.tsv")
     NI_participants_df, Ni_rois_df = merge_ni_df(NI_participants_df, participants_df,
                                                  qc=qc, id_type=id_type)
@@ -484,8 +488,7 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
     print("# 3) Load %i images"%len(NI_participants_df), flush=True)
     ### Old :
     ### NI_arr = load_images(NI_filenames, check=check)
-    NI_participants_df.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side=side),
-                              index=False, sep=sep)
+
     
     ## New ##
     NI_arr = load_images(NI_participants_df,check=check, resampling=resampling)
