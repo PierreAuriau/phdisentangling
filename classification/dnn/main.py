@@ -155,13 +155,13 @@ if __name__ == "__main__":
             fold_dir = os.path.join(saving_dir, 'fold_' + str(i))
             os.makedirs(fold_dir, exist_ok=True)
 
-            loader_train, loader_val = manager.get_dataloader(
+            loader = manager.get_dataloader(
                 train=True, validation=True, fold_index=i)
 
             # Loading model
             model = DLModel(net, loss, config, args,
-                            loader_train=loader_train,
-                            loader_val=loader_val,
+                            loader_train=loader.train,
+                            loader_val=loader.validation,
                             scheduler=scheduler, log_dir=fold_dir)
 
             model.training()
