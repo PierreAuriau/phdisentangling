@@ -80,10 +80,8 @@ class DLModel:
             pbar = tqdm(total=nb_batch, desc="Training")
             for dataitem in self.loader:
                 pbar.update()
-                inputs = dataitem.inputs
-                labels = dataitem.labels
-                inputs = inputs.to(self.device)
-                labels = labels.to(self.device)
+                inputs = dataitem.inputs.to(self.device)
+                labels = dataitem.labels.to(self.device)
                 self.optimizer.zero_grad()
                 y = self.model(inputs)
                 batch_loss = self.loss(y, labels)
@@ -101,10 +99,10 @@ class DLModel:
             y_true_val = []
             with torch.no_grad():
                 self.model.eval()
-                for (inputs, labels) in self.loader_val:
+                for dataitem in self.loader_val:
                     pbar.update()
-                    inputs = inputs.to(self.device)
-                    labels = labels.to(self.device)
+                    inputs = dataitem.inputs.to(self.device)
+                    labels = dataitem.labels.to(self.device)
                     y = self.model(inputs)
                     y_val.extend(y)
                     y_true_val.extend(labels)
@@ -148,10 +146,10 @@ class DLModel:
         with torch.no_grad():
             self.model.eval()
             # /!\ old: for (inputs, labels) in self.loader_val:
-            for (inputs, labels) in self.loader_test:
+            for dataitem in self.loader_test:
                 pbar.update()
-                inputs = inputs.to(self.device)
-                labels = labels.to(self.device)
+                inputs = dataitem.inputs.to(self.device)
+                labels = dataitem.labels.to(self.device)
                 y = self.model(inputs)
                 y_pred.extend(y)
                 y_true.extend(labels)
