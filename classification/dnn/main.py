@@ -15,6 +15,7 @@ from config import Config
 import logging
 import logging.config
 import datetime
+import pickle
 
 import torch
 import torch.nn as nn
@@ -29,14 +30,17 @@ from torch.utils.data import DataLoader, RandomSampler
 
 from sklearn.model_selection import StratifiedKFold
 
+from dl_training.datamanager import ClinicalDataManager
 
-class Args() :
-    def __init__(self, dico) :
-        for k,v in dico.items():
+
+class Args():
+    def __init__(self, dico):
+        for k, v in dico.items():
             setattr(self, k, v)
 
-if __name__=="__main__":
-    
+
+if __name__ == "__main__":
+
     # parser = argparse.ArgumentParser()
 
     # parser.add_argument("--train_data_path", type=str)
@@ -55,59 +59,59 @@ if __name__=="__main__":
     # parser.add_argument("--test", action="store_true")
 
     # args = parser.parse_args()
-    
+
     #optimizer = torch.optim.Adam(net.parameters(), lr=config.lr, weight_decay=config.weight_decay)
     #scheduler = torch.optim.lr_scheduler.StepLR(optimizer, gamma=config.gamma_scheduler, step_size=config.step_size_scheduler)
     #engine = Engine(args, config)
     #engine.run(training=args.train, testing=args.test)
-    
-    
-    
+
     dico_args = json.load(open('args.json', 'r'))
 
     args = Args(dico_args)
     config = Config()
-    
-    #Create saving directory
+
+    # Create saving directory
     if args.train:
         def to_str(entier):
             return '0' + str(entier) if entier < 10 else str(entier)
         today = datetime.date.today()
-        dir_name = str(today.year) + to_str(today.month) + to_str(today.day) + '_' + args.exp_name
+        dir_name = str(today.year) + to_str(today.month) + \
+            to_str(today.day) + '_' + args.exp_name
         saving_dir = os.path.join(args.checkpoint_dir, dir_name)
         os.makedirs(saving_dir, exist_ok=True)
-    
+
     else:
         saving_dir = args.model_path
-    
+
     ## Logging ##
-    #console and file handlers
+    # console and file handlers
     log_config = json.load(open('logging.json', 'r'))
     if args.train:
-        log_config['handlers']['file']['filename'] = os.path.join(saving_dir, 'train.log')
+        log_config['handlers']['file']['filename'] = os.path.join(
+            saving_dir, 'train.log')
     else:
-        log_config['handlers']['file']['filename'] = os.path.join(saving_dir, 'test.log')       
-    
+        log_config['handlers']['file']['filename'] = os.path.join(
+            saving_dir, 'test.log')
+
     logging.config.dictConfig(log_config)
     logger = logging.getLogger("main")
-        
+
     if not args.train and not args.test:
         args.train = True
         logger.info("No mode specify: training mode is set automatically")
-        
-    #Hyper-Parameters
+
+    # Hyper-Parameters
     n_folds = 5
     random_state = 42
-        
+
     net = densenet121(num_classes=config.num_classes)
     loss = nn.BCEWithLogitsLoss()
     scheduler = 1
-    
 
-    #Saving Hyperparameters
+    # Saving Hyperparameters
     dico_hpp = dico_args.copy()
     dico_hpp.update(config.__dict__)
-    dico_hpp ['n_folds'] = n_folds
+    dico_hpp['n_folds'] = n_folds
     dico_hpp['random_state'] = random_state
     # dico_hpp['loss'] = 'bce'
     # dico_hpp['net'] = 'densenet'
@@ -116,85 +120,80 @@ if __name__=="__main__":
     if args.train:
         with open(os.path.join(saving_dir, 'hyperparameters.json'), 'w') as f:
             json.dump(dico_hpp, f)
-    
+
     ## Training ##
     if args.train:
-        #Loading data
+        # Loading data
         if args.train:
             assert(args.train_data_path is not None)
             assert(args.train_label_path is not None)
             data = np.load(args.train_data_path)
             labels = pd.read_csv(args.train_label_path)
             if labels['diagnosis'].dtype != 'int64':
-                labels['diagnosis'] = np.array(labels['diagnosis'] ==  'control', dtype=int)
+                labels['diagnosis'] = np.array(
+                    labels['diagnosis'] == 'control', dtype=int)
             labels_arr = labels['diagnosis'].values
-        
-        #Cross-Validation
-        skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=random_state)
-    
-        for i, (train_index, val_index) in enumerate(skf.split(data, labels_arr)):
-            
+
+        # Cross-Validation
+
+        device = ('cuda' if config.cuda else 'cpu')
+        sampler = 'random'
+        root_dir = '/neurospin/psy_sbox/analyses/201906_schizconnect-vip-prague-bsnip-biodb-icaar-start_assemble-all/data/'
+        manager = ClinicalDataManager(root=root_dir, prepoc='vbm', db='scz', labels=['diagnosis'],
+                                      sampler=sampler, batch_size=config.batch_size,
+                                      residualize=None, number_of_folds=n_folds, N_train_max=None, device=device,
+                                      num_workers=config.num_cpu_workers, pin_memory=True, drop_last=False)
+
+        for i in range(n_folds):
+
             logger.info('# Cross Validation ' + str(i) + ' #')
-            
-            #Saving directories
+
+            # Saving directories
             fold_dir = os.path.join(saving_dir, 'fold_' + str(i))
-            os.makedirs(fold_dir, exist_ok=True)  
-            
-            train_data, val_data = data[train_index], data[val_index] 
-            train_labels, val_labels = labels.iloc[train_index], labels.iloc[val_index]
-                    
-            dataset_train = MRIDataset(config, args, train_data, train_labels)
-            loader_train = DataLoader(dataset_train,
-                                      batch_size=config.batch_size,
-                                      sampler=RandomSampler(dataset_train),
-                                      collate_fn=dataset_train.collate_fn,
-                                      pin_memory=config.pin_mem,
-                                      num_workers=config.num_cpu_workers)
-    
-            dataset_val = MRIDataset(config, args, val_data, val_labels)
-            loader_val = DataLoader(dataset_val,
-                                    batch_size=config.batch_size,
-                                    collate_fn=dataset_val.collate_fn,
-                                    pin_memory=config.pin_mem,
-                                    num_workers=config.num_cpu_workers)
-            
-            #Loading model
+            os.makedirs(fold_dir, exist_ok=True)
+
+            loader_train, loader_val = manager.get_dataloader(
+                train=True, validation=True, fold_index=i)
+
+            # Loading model
             model = DLModel(net, loss, config, args,
-                                 loader_train=loader_train,
-                                 loader_val=loader_val,
-                                 scheduler=scheduler, log_dir=fold_dir)
-            
+                            loader_train=loader_train,
+                            loader_val=loader_val,
+                            scheduler=scheduler, log_dir=fold_dir)
+
             model.training()
             path_to_save = os.path.join(fold_dir, 'model.pt')
             model.save_model(path_to_save)
-    
-    
+
     ## Test ##
     if args.test:
         assert(args.test_data_path is not None)
         assert(args.test_label_path is not None)
-                        
-        #Load data
-        data = np.load(args.test_data_path)
-        labels = pd.read_csv(args.test_label_path)
-        if labels['diagnosis'].dtype != 'int64':
-            labels['diagnosis'] = np.array(labels['diagnosis'] ==  'control', dtype=int)
-        dataset_test = MRIDataset(config, args, data, labels)
-        loader_test = DataLoader(dataset_test,
-                                batch_size=config.batch_size,
-                                collate_fn=dataset_test.collate_fn,
-                                pin_memory=config.pin_mem,
-                                num_workers=config.num_cpu_workers)
+
+        # Load data
         model_path = args.model_path
-        
+
         for i in range(n_folds):
-            args.model_path = os.path.join(model_path, 'fold_'+str(i), 'model.pt')
+            loader_test = manager.get_dataloader(test_intra=True, fold_index=i)
+            args.model_path = os.path.join(
+                model_path, 'fold_'+str(i), 'model.pt')
             fold_dir = os.path.join(model_path, 'fold_' + str(i))
 
-            #Loading model       
+            logger.info("Testing on Internal Test Set")
+            # Loading model
             model = DLModel(net, loss, config, args,
-                             loader_test=loader_test,
-                             scheduler=scheduler, 
-                             log_dir=fold_dir)
-    
-            model.testing()
+                            loader_test=loader_test,
+                            scheduler=scheduler,
+                            log_dir=fold_dir)
+
+            model.testing(name="_intra")
+
+            logger.info("Testing on External Test Set")
+            loader_test = manager.get_dataloader(test_intra=True, fold_index=i)
+            # Loading model
+            model = DLModel(net, loss, config, args,
+                            loader_test=loader_test,
+                            scheduler=scheduler,
+                            log_dir=fold_dir)
+
+            model.testing(name="_extra")

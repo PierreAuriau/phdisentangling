@@ -136,7 +136,7 @@ class DLModel:
         self.writer.close()
 
 
-    def testing(self):
+    def testing(self, name=''):
         self.load_model(self.model_path)
         nb_batch = len(self.loader_test)
         pbar = tqdm(total=nb_batch, desc="Test")
@@ -160,7 +160,7 @@ class DLModel:
         print(all_metrics_str, flush=True)
         
         #saving results
-        path_to_results = os.path.join(self.log_dir, "test.csv")
+        path_to_results = os.path.join(self.log_dir, "test" + name + ".csv")
         df_results = pd.DataFrame({'dataset': [self.test_data_path]})
         for name,metric in all_metrics.items():
             df_results[name] = metric
@@ -171,25 +171,27 @@ class DLModel:
         
 
     def load_model(self, path):
-        checkpoint = None
-        try:
-            checkpoint = torch.load(path, map_location=lambda storage, loc: storage)
-        except BaseException as e:
-            self.logger.error('Impossible to load the checkpoint: %s' % str(e))
-        if checkpoint is not None:
-            try:
-                if hasattr(checkpoint, "state_dict"):
-                    unexpected = self.model.load_state_dict(checkpoint.state_dict())
-                    self.logger.info('Model loading info: {}'.format(unexpected))
-                elif isinstance(checkpoint, dict):
-                    if "model" in checkpoint:
-                        unexpected = self.model.load_state_dict(checkpoint["model"], strict=False)
-                        self.logger.info('Model loading info: {}'.format(unexpected))
-                else:
-                    unexpected = self.model.load_state_dict(checkpoint)
-                    self.logger.info('Model loading info: {}'.format(unexpected))
-            except BaseException as e:
-                raise ValueError('Error while loading the model\'s weights: %s' % str(e))
+        self.load_model(torch.load(path))
+        self.logger.info('Model loaded : {}'.format(path))
+        # checkpoint = None
+        # try:
+        #     checkpoint = torch.load(path, map_location=lambda storage, loc: storage)
+        # except BaseException as e:
+        #     self.logger.error('Impossible to load the checkpoint: %s' % str(e))
+        # if checkpoint is not None:
+        #     try:
+        #         if hasattr(checkpoint, "state_dict"):
+        #             unexpected = self.model.load_state_dict(checkpoint.state_dict())
+        #             self.logger.info('Model loading info: {}'.format(unexpected))
+        #         elif isinstance(checkpoint, dict):
+        #             if "model" in checkpoint:
+        #                 unexpected = self.model.load_state_dict(checkpoint["model"], strict=False)
+        #                 self.logger.info('Model loading info: {}'.format(unexpected))
+        #         else:
+        #             unexpected = self.model.load_state_dict(checkpoint)
+        #             self.logger.info('Model loading info: {}'.format(unexpected))
+        #     except BaseException as e:
+        #         raise ValueError('Error while loading the model\'s weights: %s' % str(e))
                 
     def save_model(self, path):
       torch.save(self.model.state_dict(), path)
