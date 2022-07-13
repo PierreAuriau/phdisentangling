@@ -78,8 +78,10 @@ class DLModel:
             #training_loss = {}
             training_loss = 0
             pbar = tqdm(total=nb_batch, desc="Training")
-            for (inputs, labels) in self.loader:
+            for dataitem in self.loader:
                 pbar.update()
+                inputs = dataitem.inputs
+                labels = dataitem.labels
                 inputs = inputs.to(self.device)
                 labels = labels.to(self.device)
                 self.optimizer.zero_grad()
