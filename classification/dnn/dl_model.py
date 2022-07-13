@@ -37,6 +37,7 @@ class DLModel:
         self.loss = loss
         self.model = net
         self.optimizer = torch.optim.Adam(net.parameters(), lr=config.lr, weight_decay=config.weight_decay)
+
         ##Old :
         # self.scheduler = scheduler
         if scheduler is not None :

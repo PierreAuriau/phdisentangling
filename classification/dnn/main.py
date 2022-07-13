@@ -101,11 +101,14 @@ if __name__ == "__main__":
         logger.info("No mode specify: training mode is set automatically")
 
     # Hyper-Parameters
-    n_folds = 5
-    random_state = 42
+    n_folds = 3
+    random_state = 0
 
-    net = densenet121(num_classes=config.num_classes)
-    loss = nn.BCEWithLogitsLoss()
+    net = densenet121(num_classes=config.num_classes, in_channels=1)
+    pb='scz'
+    pos_weights = {"scz": 1.131, "asd": 1.584, "bipolar": 1.584, "sex": 1.0}
+    loss = nn.BCEWithLogitsLoss(pos_weight=torch.tensor(pos_weights[pb], dtype=torch.float32,
+                                                                device=('cuda' if config.cuda else 'cpu')))
     scheduler = 1
 
     # Saving Hyperparameters
