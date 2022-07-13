@@ -106,9 +106,10 @@ if __name__ == "__main__":
 
     net = densenet121(num_classes=config.num_classes, in_channels=1)
     pb='scz'
+    device = ('cuda' if config.cuda else 'cpu')
     pos_weights = {"scz": 1.131, "asd": 1.584, "bipolar": 1.584, "sex": 1.0}
     loss = nn.BCEWithLogitsLoss(pos_weight=torch.tensor(pos_weights[pb], dtype=torch.float32,
-                                                                device=('cuda' if config.cuda else 'cpu')))
+                                                                device=device))
     scheduler = 1
 
     # Saving Hyperparameters
@@ -139,14 +140,13 @@ if __name__ == "__main__":
 
         # Cross-Validation
 
-        device = ('cuda' if config.cuda else 'cpu')
         sampler = 'random'
         root_dir = '/neurospin/psy_sbox/analyses/201906_schizconnect-vip-prague-bsnip-biodb-icaar-start_assemble-all/data/'
-        manager = ClinicalDataManager(root=root_dir, prepoc='vbm', db='scz', labels=['diagnosis'],
+        manager = ClinicalDataManager(root=root_dir, preproc='vbm', db='scz', labels=['diagnosis'],
                                       sampler=sampler, batch_size=config.batch_size,
                                       residualize=None, number_of_folds=n_folds, N_train_max=None, device=device,
                                       num_workers=config.num_cpu_workers, pin_memory=True, drop_last=False)
-
+        
         for i in range(n_folds):
 
             logger.info('# Cross Validation ' + str(i) + ' #')
