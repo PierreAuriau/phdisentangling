@@ -198,7 +198,8 @@ if __name__ == "__main__":
             model.testing(name="_intra")
 
             logger.info("Testing on External Test Set")
-            loader_test = manager.get_dataloader(test_intra=True, fold_index=i)
+            loader = manager.get_dataloader(test=True, fold_index=i)
+            loader_test = loader.test
             # Loading model
             model = DLModel(net, loss, config, args,
                             loader_test=loader_test,
