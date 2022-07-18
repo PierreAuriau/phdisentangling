@@ -139,7 +139,7 @@ if __name__ == "__main__":
             labels_arr = labels['diagnosis'].values
 
         # Cross-Validation
-
+        device = ('cuda' if config.cuda else 'cpu')
         sampler = 'random'
         root_dir = '/neurospin/psy_sbox/analyses/201906_schizconnect-vip-prague-bsnip-biodb-icaar-start_assemble-all/data/'
         manager = ClinicalDataManager(root=root_dir, preproc='vbm', db='scz', labels=['diagnosis'],
@@ -175,6 +175,11 @@ if __name__ == "__main__":
 
         # Load data
         model_path = args.model_path
+        root_dir = '/neurospin/psy_sbox/analyses/201906_schizconnect-vip-prague-bsnip-biodb-icaar-start_assemble-all/data/'
+        manager = ClinicalDataManager(root=root_dir, preproc='vbm', db='scz', labels=['diagnosis'],
+                                      sampler="random", batch_size=config.batch_size,
+                                      residualize=None, number_of_folds=n_folds, N_train_max=None, device=device,
+                                      num_workers=config.num_cpu_workers, pin_memory=True, drop_last=False)
 
         for i in range(n_folds):
             loader_test = manager.get_dataloader(test_intra=True, fold_index=i)
