@@ -182,7 +182,8 @@ if __name__ == "__main__":
                                       num_workers=config.num_cpu_workers, pin_memory=True, drop_last=False)
 
         for i in range(n_folds):
-            loader_test = manager.get_dataloader(test_intra=True, fold_index=i)
+            loader = manager.get_dataloader(test_intra=True, fold_index=i)
+            loader_test = loader.test
             args.model_path = os.path.join(
                 model_path, 'fold_'+str(i), 'model.pt')
             fold_dir = os.path.join(model_path, 'fold_' + str(i))
