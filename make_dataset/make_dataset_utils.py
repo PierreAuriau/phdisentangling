@@ -432,15 +432,10 @@ def cat12_nii2npy(nii_path, phenotype, dataset, output_path, qc=None, sep='\t', 
 
 def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, sep='\t', id_type=str,
             check = dict(shape=(121, 145, 121), zooms=(1.5, 1.5, 1.5)), resampling=None, side=None):
-    ########################################################################################################################
-    ## Add resampling argument
-    ## old
-    #qc = pd.read_csv(qc, sep=sep) if qc is not None else None
     
-    ## New ##
-    if isinstance(qc, str):
-        qc = pd.read_csv(qc, sep=sep)
-    ## New ##
+    
+    if qc is not None:
+        qc = load_qc(qc, sep=sep)
     
     if 'TIV' in phenotype:
         phenotype.rename(columns={'TIV': 'tiv'}, inplace=True)
@@ -451,9 +446,6 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
         "Missing keys in {} that are required to compute the npy array: {}".format(phenotype,
                                                                                    set(keys_required)-set(phenotype.columns))
 
-    ## TODO: change this condition according to session and run in phenotype.tsv
-    #assert len(set(phenotype.participant_id)) == len(phenotype), "Unexpected number of participant_id"
-
     # Rm participants with missing keys_required
     null_or_nan_mask = [False for _ in range(len(phenotype))]
     for key in keys_required:
@@ -463,48 +455,150 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
               format(null_or_nan_mask.sum(), list(phenotype[null_or_nan_mask].participant_id.values)))
 
     participants_df = phenotype[~null_or_nan_mask]
-    ########################################################################################################################
-    #  Neuroimaging niftii and TIV
-    #  mwp1 files
-      #  excpected image dimensions
-    NI_filenames = glob.glob(nii_path)
-    print(len(NI_filenames))
-    ########################################################################################################################
-    #  Load images, intersect with pop and do preprocessing and dump 5d npy
-    print("###########################################################################################################")
-    print("#", dataset_name)
-
-    print("# 1) Read all file names")
-    NI_participants_df = make_participants_df(NI_filenames)
-    print(len(NI_participants_df))
-    NI_participants_df.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side=side),
-                              index=False, sep=sep)
-    print("# 2) Merge nii's participant_id with participants.tsv")
-    NI_participants_df, Ni_rois_df = merge_ni_df(NI_participants_df, participants_df,
-                                                 qc=qc, id_type=id_type, session_regex='ses-([^_/]+)', run_regex='run-([^_/]+)/')
-    print('--> Remaining samples: {} / {}'.format(len(NI_participants_df), len(participants_df)))
-    print('--> Remaining samples: {} / {}'.format(len(Ni_rois_df), len(participants_df)))
-
-    print("# 3) Load %i images"%len(NI_participants_df), flush=True)
-    ### Old :
-    ### NI_arr = load_images(NI_filenames, check=check)
-
     
-    ## New ##
-    NI_arr = load_images(NI_participants_df,check=check, resampling=resampling)
-    ## New ##
+    if side == "both":        
+        print("###########################################################################################################")
+        print("#", dataset_name)
+        print("# 1) Read all file names")
+        
+        NI_filenames = glob.glob(nii_path)
+        NI_filenames_l = [f for f in NI_filenames if '/L/' in f]
+        NI_filenames_r = [f for f in NI_filenames if '/R/' in f]
+        assert len(NI_filenames_l) + len(NI_filenames_r) == len(NI_filenames)
+        assert len(NI_filenames_l) == len(NI_filenames_r)
+        
+        NI_participants_df_l = make_participants_df(NI_filenames_l)
+        NI_participants_df_r = make_participants_df(NI_filenames_r)
+        
+        print("# 2) Merge nii's participant_id with participants.tsv")
+        NI_participants_df_l, _ = merge_ni_df(NI_participants_df_l, participants_df,
+                                                     qc=qc, id_type=id_type, session_regex='ses-([^_/]+)', run_regex='run-([^_/]+)/')
+        NI_participants_df_r, _ = merge_ni_df(NI_participants_df_r, participants_df,
+                                                     qc=qc, id_type=id_type, session_regex='ses-([^_/]+)', run_regex='run-([^_/]+)/')
+        
+        assert len(NI_participants_df_r) == len(NI_participants_df_l)
+        print('--> Remaining samples: {} / {}'.format(len(NI_participants_df_l), len(participants_df)))
+        
+        print("# 3) Load %i images"%len(NI_participants_df_l), flush=True)
+        NI_arr_l = load_images(NI_participants_df_l, check=check, resampling=resampling)
+        NI_arr_r = load_images(NI_participants_df_r, check=check, resampling=resampling)
+        NI_arr = NI_arr_l + NI_arr_r
+        print('--> {} img loaded'.format(np.shape(NI_arr)[0]))
+        
+        print("# 4) Save the new participants.tsv")
+        NI_participants_df_l.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv"),
+                                  index=False, sep=sep, side='L')
+        NI_participants_df_r.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv"),
+                                  index=False, sep=sep, side='R')
+        
+        print("# 5) Save the raw npy file (with shape {})".format(NI_arr.shape))
+        np.save(OUTPUT_SKELETON(dataset_name, output_path, type="data64", ext="npy", side='L'), NI_arr_l)
+        np.save(OUTPUT_SKELETON(dataset_name, output_path, type="data64", ext="npy", side='R'), NI_arr_r)
+        np.save(OUTPUT_SKELETON(dataset_name, output_path, type="data64", ext="npy"), NI_arr)
+        del NI_arr, NI_arr_l, NI_arr_r
+        
+    else:
+        NI_filenames = glob.glob(nii_path)
+        print(len(NI_filenames))
+        
+        #  Load images, intersect with pop and do preprocessing and dump 5d npy
+        print("###########################################################################################################")
+        print("#", dataset_name)
     
-    print('--> {} img loaded'.format(len(NI_participants_df)))
-    print("# 4) Save the new participants.tsv")
-    NI_participants_df.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv"),
-                              index=False, sep=sep, side=side)
-    print("# 5) Save the raw npy file (with shape {})".format(NI_arr.shape))
-    np.save(OUTPUT_SKELETON(dataset_name, output_path, type="data64", ext="npy", side=side), NI_arr)
+        print("# 1) Read all file names")
+        NI_participants_df = make_participants_df(NI_filenames)
+        print(len(NI_participants_df))
+        NI_participants_df.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side=side),
+                                  index=False, sep=sep)
+        print("# 2) Merge nii's participant_id with participants.tsv")
+        NI_participants_df, _ = merge_ni_df(NI_participants_df, participants_df,
+                                                     qc=qc, id_type=id_type, session_regex='ses-([^_/]+)', run_regex='run-([^_/]+)/')
+        print('--> Remaining samples: {} / {}'.format(len(NI_participants_df), len(participants_df)))
+    
+        print("# 3) Load %i images"%len(NI_participants_df), flush=True)
+    
+        ## New ##
+        NI_arr = load_images(NI_participants_df, check=check, resampling=resampling)
+        ## New ##
+        
+        print('--> {} img loaded'.format(len(NI_participants_df)))
+        print("# 4) Save the new participants.tsv")
+        NI_participants_df.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv"),
+                                  index=False, sep=sep, side=side)
+        print("# 5) Save the raw npy file (with shape {})".format(NI_arr.shape))
+        np.save(OUTPUT_SKELETON(dataset_name, output_path, type="data64", ext="npy", side=side), NI_arr)
+    
+        ######################################################################################################################
+        # Deallocate the memory
+        del NI_arr
 
-    ######################################################################################################################
-    # Deallocate the memory
-    del NI_arr
+def load_qc(qc_file, sep='\t'):
+    """
+    Améliorations : Ajouter unique_key_qc à la place de participant_id
+                    Ajouter assertion sur la présence des colonnes qc et participant_id
+                    Ajouter la modification du type de la colonne qc en bool/int
+    
+    Functions which loads and merges qc_file depending the type of qc_file variable.
 
+    Parameters
+    ----------
+    qc_file : DataFrame, str, list or dict
+        Quality Check Dataframe or path to Quality Check Dataframe. All Dataframes need a 'participant_id' and 'qc' columns
+    sep : str, optional
+        The separator to load the files (in case of qc_file is composed of paths). The default is '\t'.
+
+    Returns
+    -------
+    qc : DataFrame
+        Quality Check Dataframe with a column participant_id, a column for each qc_file (the names are qc_int for list or qc_key for dict)
+        and qc column which is the multiplication of all qc columns.
+
+    """
+    qc = None
+    if isinstance(qc_file, pd.DataFrame):
+        qc = qc_file
+    
+    elif isinstance(qc_file, str):
+        qc = pd.read_csv(qc_file, sep=sep)
+    
+    elif isinstance(qc_file, list):
+        for n, file in enumerate(qc_file):
+            if isinstance(file, str):
+                df_qc = pd.read_csv(file, sep=sep)
+            elif isinstance(file, pd.DataFrame):
+                df_qc = file
+            else:
+                raise ValueError
+            if qc is None:
+                qc = df_qc.copy()
+                qc.reset_index(drop=True, inplace=True)
+                qc.rename(columns={'qc': 'qc_' + str(n)}, inplace=True)
+            else:
+                qc = pd.merge(qc, df_qc, on=['participant_id'], how='inner', validate='1:1')
+                qc.rename(columns={'qc': 'qc_' + str(n)}, inplace=True)
+        qc['qc'] = qc[['qc_' + str(i) for i in range(len(qc_file))]].prod(axis=1)
+
+    elif isinstance(qc_file, dict):
+        for key, file in qc_file.items():
+            if isinstance(file, str):
+                df_qc = pd.read_csv(file, sep=sep)
+            elif isinstance(file, pd.DataFrame):
+                df_qc = file
+            else:
+                raise ValueError
+            if qc is None:
+                qc = df_qc
+                qc.reset_index(drop=True, inplace=True)
+                qc.rename(columns={'qc': 'qc_' + key}, inplace=True)
+            else:
+                qc = pd.merge(qc, df_qc, on=['participant_id'], how='inner', validate='1:1')
+                qc.rename(columns={'qc': 'qc_' + key}, inplace=True)
+        qc['qc'] = qc[['qc_' + k for k in qc_file.keys()]].prod(axis=1)
+    else:
+        raise ValueError('qc must be a Dataframe, a path to a DataFrame, a list of paths to DataFrames or a dict of paths to DataFrames')
+    
+    assert 'participant_id' in qc and 'qc' in qc
+    return qc
 
 
 def global_scaling(NI_arr, axis0_values=None, target=1500):
