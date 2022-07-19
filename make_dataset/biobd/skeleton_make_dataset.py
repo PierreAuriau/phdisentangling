@@ -27,7 +27,7 @@ else:
 # Parameters
 study = "biobd"
 
-data_dir = os.path.join(prefixe, 'neurospin', 'psy_sbox', 'analyses', '202205_predict_neurodev', study, 'data', 'skeleton')
+data_dir = os.path.join(prefixe, 'neurospin', 'psy_sbox', 'analyses', '202205_predict_neurodev', 'data', study, 'skeleton')
 regex = "raw/1.5mm/*/*resampled_skeleton_sub-*.nii.gz"
 qc_file = {"vbm": "derivatives/cat12-12.6_vbm_qc/qc.tsv"}
 

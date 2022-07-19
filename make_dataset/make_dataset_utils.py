@@ -144,7 +144,6 @@ def merge_ni_df(NI_participants_df, participants_df, qc=None, participant_id="pa
         if qc is not None and 'run' in qc:
             unique_key_qc.append('run')
             qc.run = qc.run.astype(str)
-
     # 2) Keeps only the matching (participant_id, session, run) from both NI_participants_df and participants_df by
     #    preserving the order of NI_participants_df
     # !! Very import to have a clean index (to retrieve the order after the merge)
@@ -152,6 +151,7 @@ def merge_ni_df(NI_participants_df, participants_df, qc=None, participant_id="pa
     NI_participants_df = NI_participants_df.reset_index(drop=True).reset_index() # stores a clean index from 0..len(df)
     NI_participants_merged = pd.merge(NI_participants_df, participants_df, on=unique_key_pheno,
                                       how='inner', validate='m:1')
+
     print('--> {} {} have missing phenotype'.format(len(NI_participants_df)-len(NI_participants_merged),
           unique_key_pheno))
 
@@ -173,7 +173,7 @@ def merge_ni_df(NI_participants_df, participants_df, qc=None, participant_id="pa
             # New code simply select qc['qc'] == 1
             keep = qc[qc['qc'] == 1][unique_key_qc]
             init_len = len(NI_participants_merged)
-
+            print("KEEP", len(keep))
             keep.participant_id = keep.participant_id.astype(str)
 
             assert NI_participants_merged.participant_id.dtype==keep.participant_id.dtype
@@ -431,12 +431,13 @@ def cat12_nii2npy(nii_path, phenotype, dataset, output_path, qc=None, sep='\t', 
     return participants_filename, rois_filename, vbm_filename
 
 def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, sep='\t', id_type=str,
-            check = dict(shape=(121, 145, 121), zooms=(1.5, 1.5, 1.5)), resampling=None, side=None):
+            check = dict(shape=(121, 145, 121), zooms=(1.5, 1.5, 1.5)), side=None):
     
     
     if qc is not None:
         qc = load_qc(qc, sep=sep)
-    
+
+    print(qc.head())
     if 'TIV' in phenotype:
         phenotype.rename(columns={'TIV': 'tiv'}, inplace=True)
 
@@ -455,33 +456,30 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
               format(null_or_nan_mask.sum(), list(phenotype[null_or_nan_mask].participant_id.values)))
 
     participants_df = phenotype[~null_or_nan_mask]
-    
-    if side == "both":        
+    if side == "both":
         print("###########################################################################################################")
         print("#", dataset_name)
         print("# 1) Read all file names")
-        
         NI_filenames = glob.glob(nii_path)
         NI_filenames_l = [f for f in NI_filenames if '/L/' in f]
         NI_filenames_r = [f for f in NI_filenames if '/R/' in f]
         assert len(NI_filenames_l) + len(NI_filenames_r) == len(NI_filenames)
         assert len(NI_filenames_l) == len(NI_filenames_r)
-        
-        NI_participants_df_l = make_participants_df(NI_filenames_l)
-        NI_participants_df_r = make_participants_df(NI_filenames_r)
-        
+        NI_participants_df_l = make_participants_df(NI_filenames_l, id_regex='_sub-([^/_]+)_')
+        NI_participants_df_r = make_participants_df(NI_filenames_r, id_regex='_sub-([^/_]+)_')
+
         print("# 2) Merge nii's participant_id with participants.tsv")
         NI_participants_df_l, _ = merge_ni_df(NI_participants_df_l, participants_df,
-                                                     qc=qc, id_type=id_type, session_regex='ses-([^_/]+)', run_regex='run-([^_/]+)/')
+                                                     qc=qc, id_type=id_type, session_regex='ses-([^_/]+)', run_regex='run-([^_/\.]+)')
         NI_participants_df_r, _ = merge_ni_df(NI_participants_df_r, participants_df,
-                                                     qc=qc, id_type=id_type, session_regex='ses-([^_/]+)', run_regex='run-([^_/]+)/')
+                                                     qc=qc, id_type=id_type, session_regex='ses-([^_/]+)', run_regex='run-([^_/\.]+)')
         
         assert len(NI_participants_df_r) == len(NI_participants_df_l)
         print('--> Remaining samples: {} / {}'.format(len(NI_participants_df_l), len(participants_df)))
-        
+
         print("# 3) Load %i images"%len(NI_participants_df_l), flush=True)
-        NI_arr_l = load_images(NI_participants_df_l, check=check, resampling=resampling)
-        NI_arr_r = load_images(NI_participants_df_r, check=check, resampling=resampling)
+        NI_arr_l = load_images(NI_participants_df_l, check=check, resampling=None)
+        NI_arr_r = load_images(NI_participants_df_r, check=check, resampling=None)
         NI_arr = NI_arr_l + NI_arr_r
         print('--> {} img loaded'.format(np.shape(NI_arr)[0]))
         
@@ -506,13 +504,13 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
         print("#", dataset_name)
     
         print("# 1) Read all file names")
-        NI_participants_df = make_participants_df(NI_filenames)
+        NI_participants_df = make_participants_df(NI_filenames, id_regex='_sub-([^/_]+)_')
         print(len(NI_participants_df))
         NI_participants_df.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side=side),
                                   index=False, sep=sep)
         print("# 2) Merge nii's participant_id with participants.tsv")
         NI_participants_df, _ = merge_ni_df(NI_participants_df, participants_df,
-                                                     qc=qc, id_type=id_type, session_regex='ses-([^_/]+)', run_regex='run-([^_/]+)/')
+                                                     qc=qc, id_type=id_type, session_regex='ses-([^_/]+)', run_regex='run-([^_/\.]+)')
         print('--> Remaining samples: {} / {}'.format(len(NI_participants_df), len(participants_df)))
     
         print("# 3) Load %i images"%len(NI_participants_df), flush=True)
