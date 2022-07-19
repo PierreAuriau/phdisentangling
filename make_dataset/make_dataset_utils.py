@@ -437,7 +437,6 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
     if qc is not None:
         qc = load_qc(qc, sep=sep)
 
-    print(qc.head())
     if 'TIV' in phenotype:
         phenotype.rename(columns={'TIV': 'tiv'}, inplace=True)
 
@@ -484,10 +483,10 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
         print('--> {} img loaded'.format(np.shape(NI_arr)[0]))
         
         print("# 4) Save the new participants.tsv")
-        NI_participants_df_l.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv"),
-                                  index=False, sep=sep, side='L')
-        NI_participants_df_r.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv"),
-                                  index=False, sep=sep, side='R')
+        NI_participants_df_l.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side='L'),
+                                  index=False, sep=sep)
+        NI_participants_df_r.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side='R'),
+                                  index=False, sep=sep)
         
         print("# 5) Save the raw npy file (with shape {})".format(NI_arr.shape))
         np.save(OUTPUT_SKELETON(dataset_name, output_path, type="data64", ext="npy", side='L'), NI_arr_l)
@@ -521,8 +520,8 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
         
         print('--> {} img loaded'.format(len(NI_participants_df)))
         print("# 4) Save the new participants.tsv")
-        NI_participants_df.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv"),
-                                  index=False, sep=sep, side=side)
+        NI_participants_df.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side=side),
+                                  index=False, sep=sep)
         print("# 5) Save the raw npy file (with shape {})".format(NI_arr.shape))
         np.save(OUTPUT_SKELETON(dataset_name, output_path, type="data64", ext="npy", side=side), NI_arr)
     
