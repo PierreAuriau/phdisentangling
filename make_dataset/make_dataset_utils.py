@@ -499,8 +499,8 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
         for k in keys_to_check:
             NI_participants_df_l[k].astype(key_type[k])
             NI_participants_df_r[k].astype(key_type[k])
-        assert NI_participants_df_r[keys_to_check] == NI_participants_df_l[keys_to_check]
-
+        assert np.all(NI_participants_df_r[keys_to_check] == NI_participants_df_l[keys_to_check])
+        return 0
         print("# 3) Load %i images"%len(NI_participants_df_l), flush=True)
         NI_arr_l = load_images(NI_participants_df_l, check=check, resampling=None)
         NI_arr_r = load_images(NI_participants_df_r, check=check, resampling=None)
