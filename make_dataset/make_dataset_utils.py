@@ -491,7 +491,7 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
                 keys_to_check.remove(k)
         for k in keys_to_check:
             key_type[k] = NI_participants_df_l[k].dtype
-            cat_order = CategoricalDtype(participants_df[k].unique().tolist(), ordered=True)
+            cat_order = CategoricalDtype(NI_participants_df_l[k].unique().tolist(), ordered=True)
             NI_participants_df_l[k].astype(cat_order)
             NI_participants_df_r[k].astype(cat_order)
         NI_participants_df_l.sort_values(keys_to_check, inplace=True, ignore_index=True)
