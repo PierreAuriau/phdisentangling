@@ -10,6 +10,8 @@
 import os, sys
 import numpy as np
 import pandas as pd
+from pandas.api.types import CategoricalDtype
+
 import matplotlib
 matplotlib.use('Agg')
 import glob
@@ -154,6 +156,8 @@ def merge_ni_df(NI_participants_df, participants_df, qc=None, participant_id="pa
 
     print('--> {} {} have missing phenotype'.format(len(NI_participants_df)-len(NI_participants_merged),
           unique_key_pheno))
+    print('--> {} {} have missing nifti image'.format(len(participants_df)-len(NI_participants_merged),
+          unique_key_pheno))
 
     # 3) If QC is available, filters out the (participant_id, session, run) who did not pass the QC
     if qc is not None:
@@ -173,7 +177,6 @@ def merge_ni_df(NI_participants_df, participants_df, qc=None, participant_id="pa
             # New code simply select qc['qc'] == 1
             keep = qc[qc['qc'] == 1][unique_key_qc]
             init_len = len(NI_participants_merged)
-            print("KEEP", len(keep))
             keep.participant_id = keep.participant_id.astype(str)
 
             assert NI_participants_merged.participant_id.dtype==keep.participant_id.dtype
@@ -431,9 +434,8 @@ def cat12_nii2npy(nii_path, phenotype, dataset, output_path, qc=None, sep='\t', 
     return participants_filename, rois_filename, vbm_filename
 
 def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, sep='\t', id_type=str,
-            check = dict(shape=(121, 145, 121), zooms=(1.5, 1.5, 1.5)), side=None):
-    
-    
+            check=dict(shape=(121, 145, 121), zooms=(1.5, 1.5, 1.5)), side=None):
+
     if qc is not None:
         qc = load_qc(qc, sep=sep)
 
@@ -446,7 +448,7 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
         "Missing keys in {} that are required to compute the npy array: {}".format(phenotype,
                                                                                    set(keys_required)-set(phenotype.columns))
 
-    # Rm participants with missing keys_required
+    #Remove participants with missing keys_required
     null_or_nan_mask = [False for _ in range(len(phenotype))]
     for key in keys_required:
         null_or_nan_mask |= getattr(phenotype, key).isnull() | getattr(phenotype, key).isna()
@@ -455,6 +457,7 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
               format(null_or_nan_mask.sum(), list(phenotype[null_or_nan_mask].participant_id.values)))
 
     participants_df = phenotype[~null_or_nan_mask]
+    
     if side == "both":
         print("###########################################################################################################")
         print("#", dataset_name)
@@ -474,6 +477,23 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
                                                      qc=qc, id_type=id_type, session_regex='ses-([^_/]+)', run_regex='run-([^_/\.]+)')
         
         assert len(NI_participants_df_r) == len(NI_participants_df_l)
+
+        # Check order of the two dataframes according to keys_to_check
+        keys_to_check = ['partcipant_id', 'session', 'run']
+        for k in keys_to_check:
+            if k not in NI_participants_df_l.columns:
+                keys_to_check.remove(k)
+        for k in keys_to_check:
+            key_type[k] = NI_participants_df_l[k].dtype
+            cat_order = CategoricalDtype(participants_df[k].unique().tolist(), ordered=True)
+            NI_participants_df_l[k].astype(cat_order)
+            NI_participants_df_r[k].astype(cat_order)
+        NI_participants_df_l.sort_values(keys_to_check, inplace=True, ignore_index=True)
+        NI_participants_df_r.sort_values(keys_to_check, inplace=True, ignore_index=True)
+        for k in keys_to_check:
+            NI_participants_df_l[k].astype(key_type[k])
+            NI_participants_df_r[k].astype(key_type[k])
+        assert NI_participants_df_r[keys_to_check] == NI_participants_df_l[keys_to_check]
         print('--> Remaining samples: {} / {}'.format(len(NI_participants_df_l), len(participants_df)))
 
         print("# 3) Load %i images"%len(NI_participants_df_l), flush=True)
