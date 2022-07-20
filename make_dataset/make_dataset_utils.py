@@ -484,7 +484,7 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
 
         # Check order of the two dataframes according to keys_to_check
         print('Reordering the two dataframes...')
-        keys_to_check = ['partcipant_id', 'session', 'run']
+        keys_to_check = ['participant_id', 'session', 'run']
         key_type = {}
         for k in keys_to_check:
             if k not in NI_participants_df_l.columns:
@@ -492,14 +492,15 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
         for k in keys_to_check:
             key_type[k] = NI_participants_df_l[k].dtype
             cat_order = CategoricalDtype(NI_participants_df_l[k].unique().tolist(), ordered=True)
-            NI_participants_df_l[k].astype(cat_order)
-            NI_participants_df_r[k].astype(cat_order)
+            NI_participants_df_l[k] = NI_participants_df_l[k].astype(cat_order)
+            NI_participants_df_r[k] = NI_participants_df_r[k].astype(cat_order)
         NI_participants_df_l.sort_values(keys_to_check, inplace=True, ignore_index=True)
         NI_participants_df_r.sort_values(keys_to_check, inplace=True, ignore_index=True)
         for k in keys_to_check:
             NI_participants_df_l[k].astype(key_type[k])
             NI_participants_df_r[k].astype(key_type[k])
         assert np.all(NI_participants_df_r[keys_to_check] == NI_participants_df_l[keys_to_check])
+
         print("# 3) Load %i images"%len(NI_participants_df_l), flush=True)
         NI_arr_l = load_images(NI_participants_df_l, check=check, resampling=None)
         NI_arr_r = load_images(NI_participants_df_r, check=check, resampling=None)
@@ -508,10 +509,14 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
         
         print("# 4) Save the new participants.tsv")
         NI_participants_df_l.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side='L'),
-                                  index=False, sep=sep)
+                                  index=True, sep=sep)
         NI_participants_df_r.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side='R'),
-                                  index=False, sep=sep)
-        
+                                  index=True, sep=sep)
+        print("Sanity Check")
+        df_l = pd.read_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side='L'), sep=sep)
+        df_r = pd.read_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side='R'), sep=sep)
+        assert np.all(df_l[[keys_to_check]] == df_r[[keys_to_check]])
+
         print("# 5) Save the raw npy file (with shape {})".format(NI_arr.shape))
         np.save(OUTPUT_SKELETON(dataset_name, output_path, type="data64", ext="npy", side='L'), NI_arr_l)
         np.save(OUTPUT_SKELETON(dataset_name, output_path, type="data64", ext="npy", side='R'), NI_arr_r)
