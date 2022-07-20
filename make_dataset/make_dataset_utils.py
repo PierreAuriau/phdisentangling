@@ -457,7 +457,7 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
               format(null_or_nan_mask.sum(), list(phenotype[null_or_nan_mask].participant_id.values)))
 
     participants_df = phenotype[~null_or_nan_mask]
-    
+
     if side == "both":
         print("###########################################################################################################")
         print("#", dataset_name)
@@ -471,15 +471,21 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
         NI_participants_df_r = make_participants_df(NI_filenames_r, id_regex='_sub-([^/_]+)_')
 
         print("# 2) Merge nii's participant_id with participants.tsv")
+        print('Side L')
         NI_participants_df_l, _ = merge_ni_df(NI_participants_df_l, participants_df,
                                                      qc=qc, id_type=id_type, session_regex='ses-([^_/]+)', run_regex='run-([^_/\.]+)')
+        print('--> Remaining samples: {} / {}'.format(len(NI_participants_df_l), len(participants_df)))
+
+        print('Side R')
         NI_participants_df_r, _ = merge_ni_df(NI_participants_df_r, participants_df,
                                                      qc=qc, id_type=id_type, session_regex='ses-([^_/]+)', run_regex='run-([^_/\.]+)')
-        
+        print('--> Remaining samples: {} / {}'.format(len(NI_participants_df_r), len(participants_df)))
         assert len(NI_participants_df_r) == len(NI_participants_df_l)
 
         # Check order of the two dataframes according to keys_to_check
+        print('Reordering the two dataframes...')
         keys_to_check = ['partcipant_id', 'session', 'run']
+        key_type = {}
         for k in keys_to_check:
             if k not in NI_participants_df_l.columns:
                 keys_to_check.remove(k)
@@ -494,7 +500,6 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
             NI_participants_df_l[k].astype(key_type[k])
             NI_participants_df_r[k].astype(key_type[k])
         assert NI_participants_df_r[keys_to_check] == NI_participants_df_l[keys_to_check]
-        print('--> Remaining samples: {} / {}'.format(len(NI_participants_df_l), len(participants_df)))
 
         print("# 3) Load %i images"%len(NI_participants_df_l), flush=True)
         NI_arr_l = load_images(NI_participants_df_l, check=check, resampling=None)
