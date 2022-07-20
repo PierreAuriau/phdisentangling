@@ -509,13 +509,13 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
         
         print("# 4) Save the new participants.tsv")
         NI_participants_df_l.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side='L'),
-                                  index=True, sep=sep)
+                                  index=False, sep=sep)
         NI_participants_df_r.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side='R'),
-                                  index=True, sep=sep)
+                                  index=False, sep=sep)
         print("Sanity Check")
         df_l = pd.read_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side='L'), sep=sep)
         df_r = pd.read_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side='R'), sep=sep)
-        assert np.all(df_l[[keys_to_check]] == df_r[[keys_to_check]])
+        assert np.all(df_l[keys_to_check] == df_r[keys_to_check])
 
         print("# 5) Save the raw npy file (with shape {})".format(NI_arr.shape))
         np.save(OUTPUT_SKELETON(dataset_name, output_path, type="data64", ext="npy", side='L'), NI_arr_l)
