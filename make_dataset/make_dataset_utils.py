@@ -457,18 +457,29 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
               format(null_or_nan_mask.sum(), list(phenotype[null_or_nan_mask].participant_id.values)))
 
     participants_df = phenotype[~null_or_nan_mask]
-
+    
+    ## A TESTER ##
+    if side is None:
+        if re.search('/L', nii_path):
+            side = "L"
+        elif re.search('/R', nii_path):
+            side = "R"
+        else:
+            side = "both"
+        print('Side is set automatically to {}'.format(side))
+        
     if side == "both":
         print("###########################################################################################################")
         print("#", dataset_name)
         print("# 1) Read all file names")
         NI_filenames = glob.glob(nii_path)
-        NI_filenames_l = [f for f in NI_filenames if '/L/' in f]
-        NI_filenames_r = [f for f in NI_filenames if '/R/' in f]
+        NI_filenames_l = [f for f in NI_filenames if re.search('/L', f)]
+        NI_filenames_r = [f for f in NI_filenames if re.search('/R', f)]
         assert len(NI_filenames_l) + len(NI_filenames_r) == len(NI_filenames)
         assert len(NI_filenames_l) == len(NI_filenames_r)
         NI_participants_df_l = make_participants_df(NI_filenames_l, id_regex='_sub-([^/_]+)_')
         NI_participants_df_r = make_participants_df(NI_filenames_r, id_regex='_sub-([^/_]+)_')
+        print(' {} NI files have been found'.format(str(len(NI_filenames_l))))
 
         print("# 2) Merge nii's participant_id with participants.tsv")
         print('Side L')
@@ -500,6 +511,13 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
             NI_participants_df_l[k].astype(key_type[k])
             NI_participants_df_r[k].astype(key_type[k])
         assert np.all(NI_participants_df_r[keys_to_check] == NI_participants_df_l[keys_to_check])
+        ## A TESTER ##
+        join_on = NI_participants_df_l.columns.tolist()
+        join_on.remove('ni_path')
+        NI_participants_df = pd.merge(NI_participants_df_l, NI_participants_df_r, how="inner", on=join_on, validate="1:1", suffixes=("_left", "_right"))
+        NI_participants_df.drop(columns=['ni_path_right'])
+        index = NI_participants_df.columns.tolist().index('ni_path_left')
+        NI_participants_df.insert(loc=index+1, column='ni_path_right', value=NI_participants_df['ni_path_right'])
 
         print("# 3) Load %i images"%len(NI_participants_df_l), flush=True)
         NI_arr_l = load_images(NI_participants_df_l, check=check, resampling=None)
@@ -512,6 +530,9 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
                                   index=False, sep=sep)
         NI_participants_df_r.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side='R'),
                                   index=False, sep=sep)
+        NI_participants_df.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side=None),
+                                  index=False, sep=sep)
+
         print("Sanity Check")
         df_l = pd.read_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side='L'), sep=sep)
         df_r = pd.read_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side='R'), sep=sep)
@@ -525,7 +546,7 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
         
     else:
         NI_filenames = glob.glob(nii_path)
-        print(len(NI_filenames))
+        print(' {} NI files have been found'.format(str(len(NI_filenames))))
         
         #  Load images, intersect with pop and do preprocessing and dump 5d npy
         print("###########################################################################################################")
@@ -543,14 +564,14 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
     
         print("# 3) Load %i images"%len(NI_participants_df), flush=True)
     
-        ## New ##
-        NI_arr = load_images(NI_participants_df, check=check, resampling=resampling)
-        ## New ##
+        NI_arr = load_images(NI_participants_df, check=check, resampling=None)
         
         print('--> {} img loaded'.format(len(NI_participants_df)))
+        
         print("# 4) Save the new participants.tsv")
         NI_participants_df.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side=side),
                                   index=False, sep=sep)
+        
         print("# 5) Save the raw npy file (with shape {})".format(NI_arr.shape))
         np.save(OUTPUT_SKELETON(dataset_name, output_path, type="data64", ext="npy", side=side), NI_arr)
     
