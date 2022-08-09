@@ -46,7 +46,7 @@ run = False
 
 # For debugging, put parallel=False, number_subjects=1
 parallel = True
-number_subjects = "all"
+number_subjects = -1 # all subjects
 
 # Morphologist directory containing the subjects as subdirectories
 src_dir = os.path.join(morpho_dir, 'subjects')
