@@ -3,7 +3,7 @@
 """
 Created on Fri July 18 15:01:27 2022
 
-@author: pa267054
+@author: Pierre
 """
 
 #Module import
