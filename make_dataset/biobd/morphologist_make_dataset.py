@@ -10,7 +10,9 @@ See the repository: https://github.com/neurospin/deep_folding
 
 """
 
-import os
+import os, sys
+# Make dataset
+sys.path.append(os.path.abspath('..'))
 from make_dataset_utils import skeleton_nii2npy
 import pandas as pd
 #deep_folding
@@ -43,6 +45,9 @@ voxel_size = 1.5 #resampled voxel size
 
 junction = "thin" # "wide" or "thin"
 
+session = True
+run = True
+
 # For debugging, put parallel=False, number_subjects=1
 parallel = True
 number_subjects = "all"
@@ -72,7 +77,9 @@ for side in ["L", "R"]:
                        side=side,
                        junction=junction,
                        parallel=parallel,
-                       number_subjects=number_subjects)
+                       number_subjects=number_subjects,
+                       session=session,
+                       run=run)
     
     #Generate transform files
     generate_ICBM2009c_transforms(src_dir=src_dir,
@@ -80,10 +87,12 @@ for side in ["L", "R"]:
                                   path_to_graph=path_to_graph,
                                   side=side,
                                   parallel=parallel,
-                                  number_subjects=number_subjects)
+                                  number_subjects=number_subjects,
+                                  session=session,
+                                  run=run)
     
     #Resample skeletons in the ICBM2099c template
-    resample_files(src_dir=src_dir,
+    resample_files(src_dir=skeleton_dir,
                    input_type="skeleton",
                    resampled_dir=resampled_skeleton_dir,
                    transform_dir=transform_dir,

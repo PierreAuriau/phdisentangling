@@ -17,12 +17,12 @@ import pandas as pd
 sys.path.append(os.path.abspath('..'))
 from make_dataset_utils import skeleton_nii2npy
 
-# path to neurospin
+# path to neurospin : to delete ##
 if os.path.exists('/neurospin'):
     prefixe = '/'
 else:
     prefixe = '/home/pa267054'
-    
+##################################
 
 # Parameters
 study = "biobd"
