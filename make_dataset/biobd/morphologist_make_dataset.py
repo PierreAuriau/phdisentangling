@@ -100,29 +100,3 @@ for side in ["L", "R"]:
                    number_subjects=number_subjects,
                    out_voxel_size=voxel_size,
                    parallel=parallel)
-    
-
-### Creation of skeleton array ###
-
-# Parameters
-regex = "raw/1.5mm/*/*resampled_skeleton_sub-*.nii.gz"
-nii_path = os.path.join(resampled_skeleton_dir, regex)
-qc = {"vbm": os.path.join(study_dir, "derivatives", "cat12-12.6_vbm_qc", "qc.tsv")}
-output_path = os.path.join(output_dir, "root", "morphologist")
-side = "both"
-check = {"shape": (128, 152, 128), 
-         "zooms": (1.5, 1.5, 1.5)}
- 
-phenotype_filename = os.path.join(study_dir, 'participants.tsv')
-phenotype = pd.read_csv(phenotype_filename, sep='\t')
-
-# Array creation
-skeleton_nii2npy(nii_path=nii_path, 
-                 phenotype=phenotype, 
-                 dataset_name=study, 
-                 output_path=output_path, 
-                 qc=qc, 
-                 sep='\t', 
-                 id_type=str,
-                 check=check, 
-                 side=side)
