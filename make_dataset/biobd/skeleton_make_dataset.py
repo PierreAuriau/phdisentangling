@@ -34,17 +34,17 @@ study_dir = os.path.join(prefixe, "neurospin", "psy_sbox", study)
 output_dir = os.path.join(prefixe, "neurospin", "psy_sbox", "analyses", "202205_predict_neurodev", "data")
 
 voxel_size = 1.5
-resampled_skeleton_dir = os.path.join(output_dir, study, "skeleton", str(voxel_size)+"mm")
+resampled_skeleton_dir = os.path.join(output_dir, study, "skeleton", str(voxel_size) +"mm")
 
 ### Creation of skeleton array ###
 
 # Parameters
-regex = "raw/1.5mm/*/*resampled_skeleton_sub-*.nii.gz"
+regex = "?/?resampled_skeleton_sub-*_ses-*_run-*.nii.gz"
 nii_path = os.path.join(resampled_skeleton_dir, regex)
 
 qc = {"cat12vbm": os.path.join(study_dir, "derivatives", "cat12-12.6_vbm_qc", "qc.tsv")}
 
-output_path = os.path.join(output_dir, "root", "morphologist")
+output_path = os.path.join(output_dir, study, "skeleton")
 
 side = "both"
 
