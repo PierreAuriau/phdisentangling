@@ -473,13 +473,17 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
         print("#", dataset_name)
         print("# 1) Read all file names")
         NI_filenames = glob.glob(nii_path)
+        assert len(NI_filenames) != 0, \
+            "No NI files have been found, wrong ni_path : {}".format(nii_path)
         NI_filenames_l = [f for f in NI_filenames if re.search('/L', f)]
         NI_filenames_r = [f for f in NI_filenames if re.search('/R', f)]
-        assert len(NI_filenames_l) + len(NI_filenames_r) == len(NI_filenames)
-        assert len(NI_filenames_l) == len(NI_filenames_r)
+        assert len(NI_filenames_l) + len(NI_filenames_r) == len(NI_filenames), \
+            "{} nii files does not have a side".format(str(len(NI_filenames) - len(NI_filenames_l) - len(NI_filenames_r)))
+        assert len(NI_filenames_l) == len(NI_filenames_r), \
+            "Does not find the same number of right and left nii files ({}, {})".format(str(len(NI_filenames_r)), str(len(NI_filenames_r)))
         NI_participants_df_l = make_participants_df(NI_filenames_l, id_regex='_sub-([^/_]+)_')
         NI_participants_df_r = make_participants_df(NI_filenames_r, id_regex='_sub-([^/_]+)_')
-        print(' {} NI files have been found'.format(str(len(NI_filenames_l))))
+        print(' {} nii files have been found'.format(str(len(NI_filenames))))
 
         print("# 2) Merge nii's participant_id with participants.tsv")
         print('Side L')
@@ -515,7 +519,7 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
         join_on = NI_participants_df_l.columns.tolist()
         join_on.remove('ni_path')
         NI_participants_df = pd.merge(NI_participants_df_l, NI_participants_df_r, how="inner", on=join_on, validate="1:1", suffixes=("_left", "_right"))
-        NI_participants_df.drop(columns=['ni_path_right'])
+        NI_participants_df.drop(columns=['ni_path_right'], inplace=True)
         index = NI_participants_df.columns.tolist().index('ni_path_left')
         NI_participants_df.insert(loc=index+1, column='ni_path_right', value=NI_participants_df['ni_path_right'])
 
