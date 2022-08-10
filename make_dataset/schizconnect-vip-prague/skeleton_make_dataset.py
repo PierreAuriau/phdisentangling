@@ -44,6 +44,7 @@ check = {"shape": (128, 152, 128),
  
 phenotype_filename = os.path.join(study_dir, 'participants.tsv')
 phenotype = pd.read_csv(phenotype_filename, sep='\t')
+phenotype["session"] = phenotype["session"].fillna("v1")
 
 # Array creation
 skeleton_nii2npy(nii_path=nii_path, 

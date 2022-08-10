@@ -484,9 +484,7 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
         NI_participants_df_l = make_participants_df(NI_filenames_l, id_regex='_sub-([^/_\.]+)')
         NI_participants_df_r = make_participants_df(NI_filenames_r, id_regex='_sub-([^/_\.]+)')
         print(' {} nii files have been found'.format(str(len(NI_filenames))))
-        
-        print(participants_df[["participant_id", "session"]].head())
-        
+                
         print("# 2) Merge nii's participant_id with participants.tsv")
         print('Side L')
         NI_participants_df_l, _ = merge_ni_df(NI_participants_df_l, participants_df,
