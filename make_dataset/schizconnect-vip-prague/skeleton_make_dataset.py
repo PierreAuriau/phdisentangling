@@ -36,7 +36,7 @@ resampled_skeleton_dir = os.path.join(output_dir, study, "skeleton", str(voxel_s
 # Parameters
 regex = "?/?resampled_skeleton_sub-*_ses-*.nii.gz"
 nii_path = os.path.join(resampled_skeleton_dir, regex)
-qc = {"vbm": os.path.join(study_dir, "derivatives", "cat12-12.6_vbm_qc", "qc.tsv")}
+qc = {"vbm": os.path.join(study_dir, "derivatives", "cat12-12.7_vbm_qc", "qc.tsv")}
 output_path = os.path.join(output_dir, study, "skeleton")
 side = "both"
 check = {"shape": (128, 152, 128), 
