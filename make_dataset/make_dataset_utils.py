@@ -517,11 +517,12 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
         assert np.all(NI_participants_df_r[keys_to_check] == NI_participants_df_l[keys_to_check])
         ## A TESTER ##
         join_on = NI_participants_df_l.columns.tolist()
-        join_on.remove('ni_path')
+        join_on.remove("ni_path")
         NI_participants_df = pd.merge(NI_participants_df_l, NI_participants_df_r, how="inner", on=join_on, validate="1:1", suffixes=("_left", "_right"))
-        NI_participants_df.drop(columns=['ni_path_right'], inplace=True)
-        index = NI_participants_df.columns.tolist().index('ni_path_left')
-        NI_participants_df.insert(loc=index+1, column='ni_path_right', value=NI_participants_df['ni_path_right'])
+        columns = NI_participants_df.columns.tolist()
+        columns.remove("ni_path_right")
+        columns.insert(columns.index("ni_path_left") + 1, "ni_path_right")
+        NI_participants_df = NI_participants_df.reindex(columns=columns)
 
         print("# 3) Load %i images"%len(NI_participants_df_l), flush=True)
         NI_arr_l = load_images(NI_participants_df_l, check=check, resampling=None)
