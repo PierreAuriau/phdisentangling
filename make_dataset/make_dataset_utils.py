@@ -481,19 +481,21 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
             "{} nii files does not have a side".format(str(len(NI_filenames) - len(NI_filenames_l) - len(NI_filenames_r)))
         assert len(NI_filenames_l) == len(NI_filenames_r), \
             "Does not find the same number of right and left nii files ({}, {})".format(str(len(NI_filenames_r)), str(len(NI_filenames_l)))
-        NI_participants_df_l = make_participants_df(NI_filenames_l, id_regex='_sub-([^/_]+)_')
-        NI_participants_df_r = make_participants_df(NI_filenames_r, id_regex='_sub-([^/_]+)_')
+        NI_participants_df_l = make_participants_df(NI_filenames_l, id_regex='_sub-([^/_\.]+)')
+        NI_participants_df_r = make_participants_df(NI_filenames_r, id_regex='_sub-([^/_\.]+)')
         print(' {} nii files have been found'.format(str(len(NI_filenames))))
-
+        
+        print(participants_df[["participant_id", "session"]].head())
+        
         print("# 2) Merge nii's participant_id with participants.tsv")
         print('Side L')
         NI_participants_df_l, _ = merge_ni_df(NI_participants_df_l, participants_df,
-                                                     qc=qc, id_type=id_type, session_regex='ses-([^_/]+)', run_regex='run-([^_/\.]+)')
+                                                     qc=qc, id_type=id_type, session_regex='ses-([^_/\.]+)', run_regex='run-([^_/\.]+)')
         print('--> Remaining samples: {} / {}'.format(len(NI_participants_df_l), len(participants_df)))
 
         print('Side R')
         NI_participants_df_r, _ = merge_ni_df(NI_participants_df_r, participants_df,
-                                                     qc=qc, id_type=id_type, session_regex='ses-([^_/]+)', run_regex='run-([^_/\.]+)')
+                                                     qc=qc, id_type=id_type, session_regex='ses-([^_/\.]+)', run_regex='run-([^_/\.]+)')
         print('--> Remaining samples: {} / {}'.format(len(NI_participants_df_r), len(participants_df)))
         assert len(NI_participants_df_r) == len(NI_participants_df_l)
 
@@ -558,13 +560,13 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
         print("#", dataset_name)
     
         print("# 1) Read all file names")
-        NI_participants_df = make_participants_df(NI_filenames, id_regex='_sub-([^/_]+)_')
+        NI_participants_df = make_participants_df(NI_filenames, id_regex='_sub-([^/_\.]+)')
         print(len(NI_participants_df))
         NI_participants_df.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side=side),
                                   index=False, sep=sep)
         print("# 2) Merge nii's participant_id with participants.tsv")
         NI_participants_df, _ = merge_ni_df(NI_participants_df, participants_df,
-                                                     qc=qc, id_type=id_type, session_regex='ses-([^_/]+)', run_regex='run-([^_/\.]+)')
+                                                     qc=qc, id_type=id_type, session_regex='ses-([^_/\.]+)', run_regex='run-([^_/\.]+)')
         print('--> Remaining samples: {} / {}'.format(len(NI_participants_df), len(participants_df)))
     
         print("# 3) Load %i images"%len(NI_participants_df), flush=True)
