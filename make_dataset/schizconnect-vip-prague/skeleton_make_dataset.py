@@ -34,10 +34,10 @@ resampled_skeleton_dir = os.path.join(output_dir, study, "skeleton", str(voxel_s
 ### Creation of skeleton array ###
 
 # Parameters
-regex = "raw/1.5mm/*/*resampled_skeleton_sub-*.nii.gz"
+regex = "?/?resampled_skeleton_sub-*_ses-*.nii.gz"
 nii_path = os.path.join(resampled_skeleton_dir, regex)
 qc = {"vbm": os.path.join(study_dir, "derivatives", "cat12-12.6_vbm_qc", "qc.tsv")}
-output_path = os.path.join(output_dir, "root", "morphologist")
+output_path = os.path.join(output_dir, study, "skeleton")
 side = "both"
 check = {"shape": (128, 152, 128), 
          "zooms": (1.5, 1.5, 1.5)}
