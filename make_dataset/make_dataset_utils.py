@@ -480,7 +480,7 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
         assert len(NI_filenames_l) + len(NI_filenames_r) == len(NI_filenames), \
             "{} nii files does not have a side".format(str(len(NI_filenames) - len(NI_filenames_l) - len(NI_filenames_r)))
         assert len(NI_filenames_l) == len(NI_filenames_r), \
-            "Does not find the same number of right and left nii files ({}, {})".format(str(len(NI_filenames_r)), str(len(NI_filenames_r)))
+            "Does not find the same number of right and left nii files ({}, {})".format(str(len(NI_filenames_r)), str(len(NI_filenames_l)))
         NI_participants_df_l = make_participants_df(NI_filenames_l, id_regex='_sub-([^/_]+)_')
         NI_participants_df_r = make_participants_df(NI_filenames_r, id_regex='_sub-([^/_]+)_')
         print(' {} nii files have been found'.format(str(len(NI_filenames))))
