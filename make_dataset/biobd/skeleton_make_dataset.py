@@ -51,7 +51,7 @@ side = "full"
 #check = {"shape": (128, 152, 128), 
 #         "voxel_size": (1.5, 1.5, 1.5)}
 
-check = {"voxel_size": [1.5, 1.5, 1.5]} 
+check = {}
 
 phenotype_filename = os.path.join(study_dir, 'participants.tsv')
 phenotype = pd.read_csv(phenotype_filename, sep='\t')
