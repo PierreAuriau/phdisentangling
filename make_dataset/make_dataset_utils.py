@@ -769,9 +769,9 @@ def load_images_with_aims(NI_participants_df, check=dict(), dtype=None):
     if "shape" in check:
         assert np.asarray(ref_img).shape == check['shape']
     if "voxel_size" in check:
-        assert ref_img["voxel_size"] == check["voxel_size"]
+        assert np.asarray(ref_img["voxel_size"]) == check["voxel_size"]
     
-    assert np.all([np.all(img["voxel_size"] == ref_img["voxel_size"]) for img in NI_imgs])
+    #assert np.all([np.all(np.asarray(img["voxel_size"]) == np.asarray(ref_img["voxel_size"])) for img in NI_imgs])
     assert np.all([np.all(np.asarray(img).shape == np.asarray(ref_img).shape) for img in NI_imgs])
     
     NI_arr = np.stack([np.expand_dims(np.array(img), axis=0) for img in NI_imgs])
