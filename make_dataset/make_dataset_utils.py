@@ -438,6 +438,8 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
 
     if qc is not None:
         qc = load_qc(qc, sep=sep)
+        print(qc.columns)
+        print(qc.head())
 
     if 'TIV' in phenotype:
         phenotype.rename(columns={'TIV': 'tiv'}, inplace=True)
@@ -455,7 +457,7 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
     if null_or_nan_mask.sum() > 0:
         print('Warning: {} participant_id will not be considered because of missing required values:\n{}'. \
               format(null_or_nan_mask.sum(), list(phenotype[null_or_nan_mask].participant_id.values)))
-
+            
     participants_df = phenotype[~null_or_nan_mask]
     
     ## A TESTER ##
