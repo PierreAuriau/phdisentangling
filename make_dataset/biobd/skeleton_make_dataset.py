@@ -39,7 +39,7 @@ resampled_skeleton_dir = os.path.join(output_dir, study, "skeleton", "full", str
 ### Creation of skeleton array ###
 
 # Parameters
-regex = "L/Lresampled_skeleton_sub-*_ses-*_run-*.nii.gz"
+regex = "L/Lresampled_full_skeleton_sub-*_ses-*_run-*.nii.gz"
 nii_path = os.path.join(resampled_skeleton_dir, regex)
 
 qc = {"cat12vbm": os.path.join(study_dir, "derivatives", "cat12-12.7_vbm_qc", "qc.tsv")}
