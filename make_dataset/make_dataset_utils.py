@@ -551,7 +551,7 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
         
     if side is not None:
         if side == "full":
-            side = None
+            side = ""
         NI_filenames = glob.glob(nii_path)
         print(' {} NI files have been found'.format(str(len(NI_filenames))))
         
@@ -571,7 +571,7 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
     
         print("# 3) Load %i images"%len(NI_participants_df), flush=True)
     
-        NI_arr = load_images_with_aims(NI_participants_df, check=check, resampling=None)
+        NI_arr = load_images_with_aims(NI_participants_df, check=check)
         
         print('--> {} img loaded'.format(len(NI_participants_df)))
         
