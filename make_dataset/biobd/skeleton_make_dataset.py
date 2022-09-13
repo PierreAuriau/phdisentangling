@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Script to a create a numpy array with all skeletons 
-of the SCHIZCONNECT-VIP-PRAGUE dataset
+of the BIOBD dataset
 
 Skeletons need to be pre-processed with the morphologist_make_dataset.py script
 
@@ -34,22 +34,22 @@ study_dir = os.path.join(prefixe, "neurospin", "psy_sbox", study)
 output_dir = os.path.join(prefixe, "neurospin", "psy_sbox", "analyses", "202205_predict_neurodev", "data")
 
 voxel_size = 1.5
-resampled_skeleton_dir = os.path.join(output_dir, study, "skeleton", str(voxel_size) +"mm")
+resampled_skeleton_dir = os.path.join(output_dir, study, "skeleton", "full", str(voxel_size) +"mm")
 
 ### Creation of skeleton array ###
 
 # Parameters
-regex = "?/?resampled_skeleton_sub-*_ses-*_run-*.nii.gz"
+regex = "L/Lresampled_skeleton_sub-*_ses-*_run-*.nii.gz"
 nii_path = os.path.join(resampled_skeleton_dir, regex)
 
-qc = {"cat12vbm": os.path.join(study_dir, "derivatives", "cat12-12.6_vbm_qc", "qc.tsv")}
+qc = {"cat12vbm": os.path.join(study_dir, "derivatives", "cat12-12.7_vbm_qc", "qc.tsv")}
 
 output_path = os.path.join(output_dir, study, "skeleton")
 
-side = "both"
+side = "full"
 
 check = {"shape": (128, 152, 128), 
-         "zooms": (1.5, 1.5, 1.5)}
+         "voxel_size": (1.5, 1.5, 1.5)}
  
 phenotype_filename = os.path.join(study_dir, 'participants.tsv')
 phenotype = pd.read_csv(phenotype_filename, sep='\t')
@@ -65,3 +65,4 @@ skeleton_nii2npy(nii_path=nii_path,
                  check=check, 
                  side=side)
 
+    
