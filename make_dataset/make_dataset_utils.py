@@ -465,91 +465,93 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
         elif re.search('/R', nii_path):
             side = "R"
         else:
-            side = "both"
+            side = "full"
         print('Side is set automatically to {}'.format(side))
         
-    if side == "both":
-        print("###########################################################################################################")
-        print("#", dataset_name)
-        print("# 1) Read all file names")
-        NI_filenames = glob.glob(nii_path)
-        assert len(NI_filenames) != 0, \
-            "No NI files have been found, wrong ni_path : {}".format(nii_path)
-        NI_filenames_l = [f for f in NI_filenames if re.search('/L', f)]
-        NI_filenames_r = [f for f in NI_filenames if re.search('/R', f)]
-        assert len(NI_filenames_l) + len(NI_filenames_r) == len(NI_filenames), \
-            "{} nii files does not have a side".format(str(len(NI_filenames) - len(NI_filenames_l) - len(NI_filenames_r)))
-        assert len(NI_filenames_l) == len(NI_filenames_r), \
-            "Does not find the same number of right and left nii files ({}, {})".format(str(len(NI_filenames_r)), str(len(NI_filenames_l)))
-        NI_participants_df_l = make_participants_df(NI_filenames_l, id_regex='_sub-([^/_\.]+)')
-        NI_participants_df_r = make_participants_df(NI_filenames_r, id_regex='_sub-([^/_\.]+)')
-        print(' {} nii files have been found'.format(str(len(NI_filenames))))
+    # if side == "both":
+    #     print("###########################################################################################################")
+    #     print("#", dataset_name)
+    #     print("# 1) Read all file names")
+    #     NI_filenames = glob.glob(nii_path)
+    #     assert len(NI_filenames) != 0, \
+    #         "No NI files have been found, wrong ni_path : {}".format(nii_path)
+    #     NI_filenames_l = [f for f in NI_filenames if re.search('/L', f)]
+    #     NI_filenames_r = [f for f in NI_filenames if re.search('/R', f)]
+    #     assert len(NI_filenames_l) + len(NI_filenames_r) == len(NI_filenames), \
+    #         "{} nii files does not have a side".format(str(len(NI_filenames) - len(NI_filenames_l) - len(NI_filenames_r)))
+    #     assert len(NI_filenames_l) == len(NI_filenames_r), \
+    #         "Does not find the same number of right and left nii files ({}, {})".format(str(len(NI_filenames_r)), str(len(NI_filenames_l)))
+    #     NI_participants_df_l = make_participants_df(NI_filenames_l, id_regex='_sub-([^/_\.]+)')
+    #     NI_participants_df_r = make_participants_df(NI_filenames_r, id_regex='_sub-([^/_\.]+)')
+    #     print(' {} nii files have been found'.format(str(len(NI_filenames))))
                 
-        print("# 2) Merge nii's participant_id with participants.tsv")
-        print('Side L')
-        NI_participants_df_l, _ = merge_ni_df(NI_participants_df_l, participants_df,
-                                                     qc=qc, id_type=id_type, session_regex='ses-([^_/\.]+)', run_regex='run-([^_/\.]+)')
-        print('--> Remaining samples: {} / {}'.format(len(NI_participants_df_l), len(participants_df)))
+    #     print("# 2) Merge nii's participant_id with participants.tsv")
+    #     print('Side L')
+    #     NI_participants_df_l, _ = merge_ni_df(NI_participants_df_l, participants_df,
+    #                                                  qc=qc, id_type=id_type, session_regex='ses-([^_/\.]+)', run_regex='run-([^_/\.]+)')
+    #     print('--> Remaining samples: {} / {}'.format(len(NI_participants_df_l), len(participants_df)))
 
-        print('Side R')
-        NI_participants_df_r, _ = merge_ni_df(NI_participants_df_r, participants_df,
-                                                     qc=qc, id_type=id_type, session_regex='ses-([^_/\.]+)', run_regex='run-([^_/\.]+)')
-        print('--> Remaining samples: {} / {}'.format(len(NI_participants_df_r), len(participants_df)))
-        assert len(NI_participants_df_r) == len(NI_participants_df_l)
+    #     print('Side R')
+    #     NI_participants_df_r, _ = merge_ni_df(NI_participants_df_r, participants_df,
+    #                                                  qc=qc, id_type=id_type, session_regex='ses-([^_/\.]+)', run_regex='run-([^_/\.]+)')
+    #     print('--> Remaining samples: {} / {}'.format(len(NI_participants_df_r), len(participants_df)))
+    #     assert len(NI_participants_df_r) == len(NI_participants_df_l)
 
-        # Check order of the two dataframes according to keys_to_check
-        print('Reordering the two dataframes...')
-        keys_to_check = ['participant_id', 'session', 'run']
-        key_type = {}
-        for k in keys_to_check:
-            if k not in NI_participants_df_l.columns:
-                keys_to_check.remove(k)
-        for k in keys_to_check:
-            key_type[k] = NI_participants_df_l[k].dtype
-            cat_order = CategoricalDtype(NI_participants_df_l[k].unique().tolist(), ordered=True)
-            NI_participants_df_l[k] = NI_participants_df_l[k].astype(cat_order)
-            NI_participants_df_r[k] = NI_participants_df_r[k].astype(cat_order)
-        NI_participants_df_l.sort_values(keys_to_check, inplace=True, ignore_index=True)
-        NI_participants_df_r.sort_values(keys_to_check, inplace=True, ignore_index=True)
-        for k in keys_to_check:
-            NI_participants_df_l[k].astype(key_type[k])
-            NI_participants_df_r[k].astype(key_type[k])
-        assert np.all(NI_participants_df_r[keys_to_check] == NI_participants_df_l[keys_to_check])
-        ## A TESTER ##
-        join_on = NI_participants_df_l.columns.tolist()
-        join_on.remove("ni_path")
-        NI_participants_df = pd.merge(NI_participants_df_l, NI_participants_df_r, how="inner", on=join_on, validate="1:1", suffixes=("_left", "_right"))
-        columns = NI_participants_df.columns.tolist()
-        columns.remove("ni_path_right")
-        columns.insert(columns.index("ni_path_left") + 1, "ni_path_right")
-        NI_participants_df = NI_participants_df.reindex(columns=columns)
+    #     # Check order of the two dataframes according to keys_to_check
+    #     print('Reordering the two dataframes...')
+    #     keys_to_check = ['participant_id', 'session', 'run']
+    #     key_type = {}
+    #     for k in keys_to_check:
+    #         if k not in NI_participants_df_l.columns:
+    #             keys_to_check.remove(k)
+    #     for k in keys_to_check:
+    #         key_type[k] = NI_participants_df_l[k].dtype
+    #         cat_order = CategoricalDtype(NI_participants_df_l[k].unique().tolist(), ordered=True)
+    #         NI_participants_df_l[k] = NI_participants_df_l[k].astype(cat_order)
+    #         NI_participants_df_r[k] = NI_participants_df_r[k].astype(cat_order)
+    #     NI_participants_df_l.sort_values(keys_to_check, inplace=True, ignore_index=True)
+    #     NI_participants_df_r.sort_values(keys_to_check, inplace=True, ignore_index=True)
+    #     for k in keys_to_check:
+    #         NI_participants_df_l[k].astype(key_type[k])
+    #         NI_participants_df_r[k].astype(key_type[k])
+    #     assert np.all(NI_participants_df_r[keys_to_check] == NI_participants_df_l[keys_to_check])
+    #     ## A TESTER ##
+    #     join_on = NI_participants_df_l.columns.tolist()
+    #     join_on.remove("ni_path")
+    #     NI_participants_df = pd.merge(NI_participants_df_l, NI_participants_df_r, how="inner", on=join_on, validate="1:1", suffixes=("_left", "_right"))
+    #     columns = NI_participants_df.columns.tolist()
+    #     columns.remove("ni_path_right")
+    #     columns.insert(columns.index("ni_path_left") + 1, "ni_path_right")
+    #     NI_participants_df = NI_participants_df.reindex(columns=columns)
 
-        print("# 3) Load %i images"%len(NI_participants_df_l), flush=True)
-        NI_arr_l = load_images(NI_participants_df_l, check=check, resampling=None)
-        NI_arr_r = load_images(NI_participants_df_r, check=check, resampling=None)
-        NI_arr = NI_arr_l + NI_arr_r
-        print('--> {} img loaded'.format(np.shape(NI_arr)[0]))
+    #     print("# 3) Load %i images"%len(NI_participants_df_l), flush=True)
+    #     NI_arr_l = load_images(NI_participants_df_l, check=check, resampling=None)
+    #     NI_arr_r = load_images(NI_participants_df_r, check=check, resampling=None)
+    #     NI_arr = NI_arr_l + NI_arr_r
+    #     print('--> {} img loaded'.format(np.shape(NI_arr)[0]))
         
-        print("# 4) Save the new participants.tsv")
-        NI_participants_df_l.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side='L'),
-                                  index=False, sep=sep)
-        NI_participants_df_r.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side='R'),
-                                  index=False, sep=sep)
-        NI_participants_df.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side=None),
-                                  index=False, sep=sep)
+    #     print("# 4) Save the new participants.tsv")
+    #     NI_participants_df_l.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side='L'),
+    #                               index=False, sep=sep)
+    #     NI_participants_df_r.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side='R'),
+    #                               index=False, sep=sep)
+    #     NI_participants_df.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side=None),
+    #                               index=False, sep=sep)
 
-        print("Sanity Check")
-        df_l = pd.read_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side='L'), sep=sep)
-        df_r = pd.read_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side='R'), sep=sep)
-        assert np.all(df_l[keys_to_check] == df_r[keys_to_check])
+    #     print("Sanity Check")
+    #     df_l = pd.read_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side='L'), sep=sep)
+    #     df_r = pd.read_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side='R'), sep=sep)
+    #     assert np.all(df_l[keys_to_check] == df_r[keys_to_check])
 
-        print("# 5) Save the raw npy file (with shape {})".format(NI_arr.shape))
-        np.save(OUTPUT_SKELETON(dataset_name, output_path, type="data64", ext="npy", side='L'), NI_arr_l)
-        np.save(OUTPUT_SKELETON(dataset_name, output_path, type="data64", ext="npy", side='R'), NI_arr_r)
-        np.save(OUTPUT_SKELETON(dataset_name, output_path, type="data64", ext="npy"), NI_arr)
-        del NI_arr, NI_arr_l, NI_arr_r
+    #     print("# 5) Save the raw npy file (with shape {})".format(NI_arr.shape))
+    #     np.save(OUTPUT_SKELETON(dataset_name, output_path, type="data64", ext="npy", side='L'), NI_arr_l)
+    #     np.save(OUTPUT_SKELETON(dataset_name, output_path, type="data64", ext="npy", side='R'), NI_arr_r)
+    #     np.save(OUTPUT_SKELETON(dataset_name, output_path, type="data64", ext="npy"), NI_arr)
+    #     del NI_arr, NI_arr_l, NI_arr_r
         
-    else:
+    if side is not None:
+        if side == "full":
+            side = None
         NI_filenames = glob.glob(nii_path)
         print(' {} NI files have been found'.format(str(len(NI_filenames))))
         
@@ -569,7 +571,7 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
     
         print("# 3) Load %i images"%len(NI_participants_df), flush=True)
     
-        NI_arr = load_images(NI_participants_df, check=check, resampling=None)
+        NI_arr = load_images_with_aims(NI_participants_df, check=check, resampling=None)
         
         print('--> {} img loaded'.format(len(NI_participants_df)))
         
@@ -759,8 +761,25 @@ def load_images(NI_participants_df, check=dict(), resampling=None, dtype=None):
         NI_arr = NI_arr.astype(dtype)
     return NI_arr
 
-
-
+def load_images_with_aims(NI_participants_df, check=dict(), dtype=None):
+    from soma import aims
+    
+    NI_imgs = [aims.read(NI_filename) for NI_filename in NI_participants_df.ni_path]
+    ref_img = NI_imgs[0]
+    if "shape" in check:
+        assert np.asarray(ref_img).shape == check['shape']
+    if "voxel_size" in check:
+        assert ref_img["voxel_size"] == check["voxel_size"]
+    
+    assert np.all([np.all(img["voxel_size"] == ref_img["voxel_size"]) for img in NI_imgs])
+    assert np.all([np.all(np.asarray(img).shape == np.asarray(ref_img).shape) for img in NI_imgs])
+    
+    NI_arr = np.stack([np.expand_dims(np.array(img), axis=0) for img in NI_imgs])
+    
+    if dtype is not None: # convert the np type
+        NI_arr = NI_arr.astype(dtype)
+    return NI_arr
+    
 def get_keys(filename):
     """
     Extract keys from bids filename. Check consistency of filename.
