@@ -13,6 +13,8 @@ Skeletons need to be pre-processed with the morphologist_make_dataset.py script
 import os
 import sys
 
+import json
+
 import numpy as np
 import pandas as pd
 
@@ -34,7 +36,7 @@ study_dir = os.path.join(prefixe, "neurospin", "psy_sbox", study)
 output_dir = os.path.join(prefixe, "neurospin", "psy_sbox", "analyses", "202205_predict_neurodev", "data")
 
 voxel_size = 1.5
-resampled_skeleton_dir = os.path.join(output_dir, study, "skeleton", "full", str(voxel_size) +"mm")
+resampled_skeleton_dir = os.path.join(output_dir, study, "skeleton", "interim", str(voxel_size) +"mm")
 
 ### Creation of skeleton array ###
 
@@ -42,29 +44,39 @@ resampled_skeleton_dir = os.path.join(output_dir, study, "skeleton", "full", str
 regex = "L/Lresampled_full_skeleton_sub-*_ses-*_run-*.nii.gz"
 nii_path = os.path.join(resampled_skeleton_dir, regex)
 
-qc = {"cat12vbm": os.path.join(study_dir, "derivatives", "cat12-12.7_vbm_qc", "qc.tsv")}
+qc_file = pd.read_csv(os.path.join(study_dir, "derivatives", "cat12-12.6_vbm_qc", "qc.tsv"), sep="\t")
+
+map_subject_run = json.load(open("mapping_subject_run.json", "r"))
+
+for sbj in map_subject_run.keys():
+    run = map_subject_run[sbj]["run"]   
+    qc_file.loc[qc_file["participant_id"] == int(sbj), ["run"]] = run
+
+qc = {"cat12vbm": qc_file}
 
 output_path = os.path.join(output_dir, study, "skeleton")
 
-side = "full"
+side = "F"
 
-#check = {"shape": (128, 152, 128), 
-#         "voxel_size": (1.5, 1.5, 1.5)}
+check = {"shape": (128, 152, 128), 
+        "voxel_size": (1.5, 1.5, 1.5)}
 
-check = {}
 
 phenotype_filename = os.path.join(study_dir, 'participants.tsv')
 phenotype = pd.read_csv(phenotype_filename, sep='\t')
 
+assert phenotype["study"].isnull().values.any()
+assert phenotype["site"].isnull().values.any()
+
 # Array creation
 skeleton_nii2npy(nii_path=nii_path, 
-                 phenotype=phenotype, 
-                 dataset_name=study, 
-                 output_path=output_path, 
-                 qc=qc, 
-                 sep='\t', 
-                 id_type=str,
-                 check=check, 
-                 side=side)
+                  phenotype=phenotype, 
+                  dataset_name=study, 
+                  output_path=output_path, 
+                  qc=qc, 
+                  sep='\t', 
+                  id_type=str,
+                  check=check, 
+                  side=side)
 
     
