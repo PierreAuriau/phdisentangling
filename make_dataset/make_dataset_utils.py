@@ -82,7 +82,7 @@ def OUTPUT_SKELETON(dataset, output_path, modality='morphologist', mri_preproc='
                   ("" if type is None else "_" + type) + "." + ext)
 
 def merge_ni_df(NI_participants_df, participants_df, qc=None, participant_id="participant_id",
-                id_type=str, session_regex=None, run_regex=None, tiv_columns=[], participants_columns=[]):
+                id_type=str, session_regex=None, acq_regex=None, run_regex=None, tiv_columns=[], participants_columns=[]):
     """
     Select participants of NI_arr and NI_participants_df participants that are also in participants_df
 
@@ -94,6 +94,7 @@ def merge_ni_df(NI_participants_df, participants_df, qc=None, participant_id="pa
     participant_id: column that identify participant_id
     id_type: the type of participant_id and session, eventually, that should be used for every DataFrame
     session_regex: regex to extract session from ni_path
+    acq_regex: regex to extract acquisition from ni_path
     run_regex: regex to extract run from ni_path
     Returns
     -------
@@ -138,6 +139,14 @@ def merge_ni_df(NI_participants_df, participants_df, qc=None, participant_id="pa
         if qc is not None and 'session' in qc:
             qc.session = qc.session.astype(id_type)
             unique_key_qc.append('session')
+    if 'acq' in participants_df or (qc is not None and 'acq' in qc):
+        NI_participants_df['acq'] = NI_participants_df.ni_path.str.extract(acq_regex or 'acq-([^_/]+)/')[0].astype(id_type)
+        if 'acq' in participants_df:
+            participants_df.acq = participants_df.acq.astype(id_type)
+            unique_key_pheno.append('acq')
+        if qc is not None and 'acq' in qc:
+            qc.acq = qc.acq.astype(id_type)
+            unique_key_qc.append('acq')
     if 'run' in participants_df or (qc is not None and 'run' in qc):
         NI_participants_df['run'] = NI_participants_df.ni_path.str.extract(run_regex or 'run-([^_/]+)\_.*nii')[0].fillna(1).astype(str)
         if 'run' in participants_df:
@@ -156,9 +165,9 @@ def merge_ni_df(NI_participants_df, participants_df, qc=None, participant_id="pa
 
     print('--> {} {} have missing phenotype'.format(len(NI_participants_df)-len(NI_participants_merged),
           unique_key_pheno))
-    print('--> {} {} have missing nifti image'.format(len(participants_df)-len(NI_participants_merged),
-          unique_key_pheno))
-
+    #print('--> {} {} have missing nifti image'.format(len(participants_df)-len(NI_participants_merged),
+    #      unique_key_pheno))
+    
     # 3) If QC is available, filters out the (participant_id, session, run) who did not pass the QC
     if qc is not None:
         assert np.all(qc.qc.eq(0) | qc.qc.eq(1)), 'Unexpected value in qc.tsv'
@@ -166,8 +175,8 @@ def merge_ni_df(NI_participants_df, participants_df, qc=None, participant_id="pa
         qc_val = qc.qc.values
         if np.all(qc_val==0):
             raise ValueError('No participant passed the QC !')
-        elif np.all(qc_val==1):
-            pass
+        #elif np.all(qc_val==1):
+        #    pass
         else:
             # Modified this part, indeed, the old code assumes that all subject
             # after idx_first_occurence should be removed, why ?
@@ -182,7 +191,7 @@ def merge_ni_df(NI_participants_df, participants_df, qc=None, participant_id="pa
             assert NI_participants_merged.participant_id.dtype==keep.participant_id.dtype
             assert NI_participants_merged.session.dtype==keep.session.dtype
             assert NI_participants_merged.run.dtype==keep.run.dtype
-
+            
             # Very important to have 1:1 correspondance between the QC and the NI_participant_array
             NI_participants_merged = pd.merge(NI_participants_merged, keep, on=unique_key_qc,
                                               how='inner', validate='1:1')
@@ -244,10 +253,10 @@ def quasi_raw_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, s
     if 'TIV' in phenotype:
         phenotype.rename(columns={'TIV': 'tiv'}, inplace=True)
 
-    keys_required = ['participant_id', 'age', 'sex', 'tiv', 'diagnosis']
+    keys_required = ['participant_id', 'age', 'sex', 'tiv', 'diagnosis', 'study']
 
     assert set(keys_required) <= set(phenotype.columns), \
-        "Missing keys in {} that are required to compute the npy array: {}".format(phenotype,
+        "Missing keys in {} that are required to compute the npy array: {}".format(phenotype.columns,
                                                                                    set(keys_required)-set(phenotype.columns))
 
     ## TODO: change this condition according to session and run in phenotype.tsv
@@ -438,8 +447,6 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
 
     if qc is not None:
         qc = load_qc(qc, sep=sep)
-        print(qc.columns)
-        print(qc.head())
 
     if 'TIV' in phenotype:
         phenotype.rename(columns={'TIV': 'tiv'}, inplace=True)
@@ -459,132 +466,46 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, se
               format(null_or_nan_mask.sum(), list(phenotype[null_or_nan_mask].participant_id.values)))
             
     participants_df = phenotype[~null_or_nan_mask]
-    
-    ## A TESTER ##
-    if side is None:
-        if re.search('/L', nii_path):
-            side = "L"
-        elif re.search('/R', nii_path):
-            side = "R"
-        else:
-            side = "full"
-        print('Side is set automatically to {}'.format(side))
-        
-    # if side == "both":
-    #     print("###########################################################################################################")
-    #     print("#", dataset_name)
-    #     print("# 1) Read all file names")
-    #     NI_filenames = glob.glob(nii_path)
-    #     assert len(NI_filenames) != 0, \
-    #         "No NI files have been found, wrong ni_path : {}".format(nii_path)
-    #     NI_filenames_l = [f for f in NI_filenames if re.search('/L', f)]
-    #     NI_filenames_r = [f for f in NI_filenames if re.search('/R', f)]
-    #     assert len(NI_filenames_l) + len(NI_filenames_r) == len(NI_filenames), \
-    #         "{} nii files does not have a side".format(str(len(NI_filenames) - len(NI_filenames_l) - len(NI_filenames_r)))
-    #     assert len(NI_filenames_l) == len(NI_filenames_r), \
-    #         "Does not find the same number of right and left nii files ({}, {})".format(str(len(NI_filenames_r)), str(len(NI_filenames_l)))
-    #     NI_participants_df_l = make_participants_df(NI_filenames_l, id_regex='_sub-([^/_\.]+)')
-    #     NI_participants_df_r = make_participants_df(NI_filenames_r, id_regex='_sub-([^/_\.]+)')
-    #     print(' {} nii files have been found'.format(str(len(NI_filenames))))
-                
-    #     print("# 2) Merge nii's participant_id with participants.tsv")
-    #     print('Side L')
-    #     NI_participants_df_l, _ = merge_ni_df(NI_participants_df_l, participants_df,
-    #                                                  qc=qc, id_type=id_type, session_regex='ses-([^_/\.]+)', run_regex='run-([^_/\.]+)')
-    #     print('--> Remaining samples: {} / {}'.format(len(NI_participants_df_l), len(participants_df)))
-
-    #     print('Side R')
-    #     NI_participants_df_r, _ = merge_ni_df(NI_participants_df_r, participants_df,
-    #                                                  qc=qc, id_type=id_type, session_regex='ses-([^_/\.]+)', run_regex='run-([^_/\.]+)')
-    #     print('--> Remaining samples: {} / {}'.format(len(NI_participants_df_r), len(participants_df)))
-    #     assert len(NI_participants_df_r) == len(NI_participants_df_l)
-
-    #     # Check order of the two dataframes according to keys_to_check
-    #     print('Reordering the two dataframes...')
-    #     keys_to_check = ['participant_id', 'session', 'run']
-    #     key_type = {}
-    #     for k in keys_to_check:
-    #         if k not in NI_participants_df_l.columns:
-    #             keys_to_check.remove(k)
-    #     for k in keys_to_check:
-    #         key_type[k] = NI_participants_df_l[k].dtype
-    #         cat_order = CategoricalDtype(NI_participants_df_l[k].unique().tolist(), ordered=True)
-    #         NI_participants_df_l[k] = NI_participants_df_l[k].astype(cat_order)
-    #         NI_participants_df_r[k] = NI_participants_df_r[k].astype(cat_order)
-    #     NI_participants_df_l.sort_values(keys_to_check, inplace=True, ignore_index=True)
-    #     NI_participants_df_r.sort_values(keys_to_check, inplace=True, ignore_index=True)
-    #     for k in keys_to_check:
-    #         NI_participants_df_l[k].astype(key_type[k])
-    #         NI_participants_df_r[k].astype(key_type[k])
-    #     assert np.all(NI_participants_df_r[keys_to_check] == NI_participants_df_l[keys_to_check])
-    #     ## A TESTER ##
-    #     join_on = NI_participants_df_l.columns.tolist()
-    #     join_on.remove("ni_path")
-    #     NI_participants_df = pd.merge(NI_participants_df_l, NI_participants_df_r, how="inner", on=join_on, validate="1:1", suffixes=("_left", "_right"))
-    #     columns = NI_participants_df.columns.tolist()
-    #     columns.remove("ni_path_right")
-    #     columns.insert(columns.index("ni_path_left") + 1, "ni_path_right")
-    #     NI_participants_df = NI_participants_df.reindex(columns=columns)
-
-    #     print("# 3) Load %i images"%len(NI_participants_df_l), flush=True)
-    #     NI_arr_l = load_images(NI_participants_df_l, check=check, resampling=None)
-    #     NI_arr_r = load_images(NI_participants_df_r, check=check, resampling=None)
-    #     NI_arr = NI_arr_l + NI_arr_r
-    #     print('--> {} img loaded'.format(np.shape(NI_arr)[0]))
-        
-    #     print("# 4) Save the new participants.tsv")
-    #     NI_participants_df_l.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side='L'),
-    #                               index=False, sep=sep)
-    #     NI_participants_df_r.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side='R'),
-    #                               index=False, sep=sep)
-    #     NI_participants_df.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side=None),
-    #                               index=False, sep=sep)
-
-    #     print("Sanity Check")
-    #     df_l = pd.read_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side='L'), sep=sep)
-    #     df_r = pd.read_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side='R'), sep=sep)
-    #     assert np.all(df_l[keys_to_check] == df_r[keys_to_check])
-
-    #     print("# 5) Save the raw npy file (with shape {})".format(NI_arr.shape))
-    #     np.save(OUTPUT_SKELETON(dataset_name, output_path, type="data64", ext="npy", side='L'), NI_arr_l)
-    #     np.save(OUTPUT_SKELETON(dataset_name, output_path, type="data64", ext="npy", side='R'), NI_arr_r)
-    #     np.save(OUTPUT_SKELETON(dataset_name, output_path, type="data64", ext="npy"), NI_arr)
-    #     del NI_arr, NI_arr_l, NI_arr_r
+           
         
     if side is not None:
-        if side == "full":
+        if side == "F":
             side = ""
         NI_filenames = glob.glob(nii_path)
+        assert len(NI_filenames) != 0, \
+                 "No NI files have been found, wrong ni_path : {}".format(nii_path)
         print(' {} NI files have been found'.format(str(len(NI_filenames))))
         
         #  Load images, intersect with pop and do preprocessing and dump 5d npy
-        print("###########################################################################################################")
         print("#", dataset_name)
     
         print("# 1) Read all file names")
         NI_participants_df = make_participants_df(NI_filenames, id_regex='_sub-([^/_\.]+)')
-        print(len(NI_participants_df))
-        NI_participants_df.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side=side),
-                                  index=False, sep=sep)
+
         print("# 2) Merge nii's participant_id with participants.tsv")
-        NI_participants_df, _ = merge_ni_df(NI_participants_df, participants_df,
-                                                     qc=qc, id_type=id_type, session_regex='ses-([^_/\.]+)', run_regex='run-([^_/\.]+)')
+        NI_participants_df, _ = merge_ni_df(NI_participants_df, participants_df, qc=qc, id_type=id_type, 
+                                            session_regex='ses-([^_/\.]+)', acq_regex='acq-([^_/\.]+)', 
+                                            run_regex='run-([^_/\.]+)')
         print('--> Remaining samples: {} / {}'.format(len(NI_participants_df), len(participants_df)))
+        
     
         print("# 3) Load %i images"%len(NI_participants_df), flush=True)
     
         NI_arr = load_images_with_aims(NI_participants_df, check=check)
-        
         print('--> {} img loaded'.format(len(NI_participants_df)))
         
         print("# 4) Save the new participants.tsv")
-        NI_participants_df.to_csv(OUTPUT_SKELETON(dataset_name, output_path, type="participants", ext="tsv", side=side),
-                                  index=False, sep=sep)
+        NI_participants_df.to_csv(OUTPUT_SKELETON(dataset_name, output_path, modality="t1mri", type="participants",
+                                                  ext="tsv", side=side), index=False, sep=sep)
+        if sep != ",":
+            print("# 4 bis) Save the new participants.csv")
+            NI_participants_df.to_csv(OUTPUT_SKELETON(dataset_name, output_path, modality="t1mri", type="participants",
+                                                      ext="csv", side=side), index=False, sep=",")
         
         print("# 5) Save the raw npy file (with shape {})".format(NI_arr.shape))
-        np.save(OUTPUT_SKELETON(dataset_name, output_path, type="data64", ext="npy", side=side), NI_arr)
+        np.save(OUTPUT_SKELETON(dataset_name, output_path, modality="t1mri", type="data64", ext="npy", side=side),
+                NI_arr)
     
-        ######################################################################################################################
         # Deallocate the memory
         del NI_arr
 
@@ -764,18 +685,27 @@ def load_images(NI_participants_df, check=dict(), resampling=None, dtype=None):
     return NI_arr
 
 def load_images_with_aims(NI_participants_df, check=dict(), dtype=None):
+    """
+    Same function as load_images but with aims to load images instead of nibabel
+
+    """
     from soma import aims
     
     NI_imgs = [aims.read(NI_filename) for NI_filename in NI_participants_df.ni_path]
     ref_img = NI_imgs[0]
+    shape = np.asarray(ref_img).squeeze().shape
+    voxel_size = np.asarray(ref_img.header()["voxel_size"])
     if "shape" in check:
-        assert np.asarray(ref_img).shape == check['shape']
+        assert np.all(shape == check['shape']), \
+        print(f"Ref image does not have the right shape : {shape} / {check['shape']}")
     if "voxel_size" in check:
-        assert np.asarray(ref_img["voxel_size"]) == check["voxel_size"]
+        assert np.all(voxel_size == check["voxel_size"]), \
+        print(f"Ref image does not have the right voxel size : {voxel_size} / {check['voxel_size']}")
     
-    #assert np.all([np.all(np.asarray(img["voxel_size"]) == np.asarray(ref_img["voxel_size"])) for img in NI_imgs])
-    assert np.all([np.all(np.asarray(img).shape == np.asarray(ref_img).shape) for img in NI_imgs])
-    
+    assert np.all([np.all(np.asarray(img.header()["voxel_size"]) == voxel_size) for img in NI_imgs]), \
+        print(f"All the images do not have the same voxel size {voxel_size}")
+    assert np.all([np.all(np.asarray(img).shape == np.asarray(ref_img).shape) for img in NI_imgs]), \
+        print(f"All the images do not have the same shape {np.asarray(ref_img).shape}")
     NI_arr = np.stack([np.expand_dims(np.squeeze(np.array(img)), axis=0) for img in NI_imgs])
     
     if dtype is not None: # convert the np type
