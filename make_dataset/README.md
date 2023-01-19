@@ -1,0 +1,5 @@
+This folder contains all the scripts to generate skeleton datasets for each study. The first step is to generate skeletons from graph files (outputs of the Morphologist pipeline) with the deep_folding toolbox. The second step is to create the numpy array with all the images which have passed the CAT12VBM qc.
+
+* launch_deep_folding_scripts.sh : launch bash command for deep_folding toolbox, morphologist_make_dataset.py scripts give same results in a python way. The advantage of bash command is to save logs and select the level of verbosity (python scripts will may be improved in this way).
+* check_voxel_size.py : check the voxel size of all the raw images. Images with a resolution under 1mm do not pass through Morphologist pipeline proprely. The goal is to know which images should be downsampled before passing through the pipeline. That is why we directly select images which have passed the CAT12VBM QC in order not to pass a second time the image in the pipeline if the image is not good. Only images in the BIOBD studies have problematic resolutions.
+
