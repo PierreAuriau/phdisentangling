@@ -23,7 +23,7 @@ nii_files = glob.glob(nii_reg)
 #QC
 qc = pd.read_csv(path_to_qc, sep="\t")
 
-map_subject_run = json.load(open("mapping_subject_run.json", "r"))
+map_subject_run = json.load(open("biobd_all_subjects_run.json", "r"))
 for sbj in map_subject_run.keys():
     run = map_subject_run[sbj]["run"]   
     qc.loc[qc["participant_id"] == int(sbj), ["run"]] = run
@@ -89,7 +89,7 @@ for i, f in enumerate(nii_files):
 		data[f"voxel_size_{i}"].append(voxel_size[i])
 	
 	if len(voxel_size) == 3:
-		data[f"voxel_size_3"].append(None)
+		data["voxel_size_3"].append(None)
 	
 	# to be processed images
 	if np.any(voxel_size < 1):
@@ -116,7 +116,7 @@ for i, f in enumerate(nii_files):
 		
 df = pd.DataFrame(data)
 df["to_be_downsampled"] = df["under_1mm"]*df["qc"]
-df.to_csv(f"{study}_to_be_downsampled.csv")
+df.to_csv(f"{study}_to_be_downsampled_run_corrected.csv")
 print("Nb of img to be downsampled :", np.count_nonzero(df["to_be_downsampled"].values))
 print("CSV saved")
 
