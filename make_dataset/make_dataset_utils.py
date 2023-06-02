@@ -538,7 +538,7 @@ def load_qc(qc_file, sep='\t'):
 
     Parameters
     ----------
-    qc_file : DataFrame, str, list or dict
+    qc_file : DataFrame or str
         Quality Check Dataframe or path to Quality Check Dataframe. All Dataframes need a 'participant_id' and 'qc' columns
     sep : str, optional
         The separator to load the files (in case of qc_file is composed of paths). The default is '\t'.
@@ -546,13 +546,9 @@ def load_qc(qc_file, sep='\t'):
     Returns
     -------
     qc : DataFrame
-        Quality Check Dataframe with a column participant_id, a column for each qc_file (the names are qc_int for list or qc_key for dict)
-        and qc column which is the multiplication of all qc columns.
+        Quality Check Dataframe with a column participant_id and a qc column
 
     """
-
-    
-    qc = None
     if isinstance(qc_file, pd.DataFrame):
         qc = qc_file
     
