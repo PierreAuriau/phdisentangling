@@ -9,7 +9,6 @@ See the repository: https://github.com/neurospin/deep_folding
 """
 
 import os
-import sys
 import subprocess
 import json
 import pandas as pd
@@ -20,7 +19,6 @@ from deep_folding.brainvisa import generate_ICBM2009c_transforms
 from deep_folding.brainvisa import remove_ventricle
 from deep_folding.brainvisa import resample_files 
 # Make dataset
-sys.path.append(os.path.abspath('..'))
 from make_skeleton_summary import make_morphologist_summary, \
                                   make_deep_folding_summary, \
                                   merge_skeleton_summaries
@@ -99,7 +97,8 @@ argv = ["--src_dir", src_dir,
         "--output_dir", transform_dir, 
         "--path_to_graph", path_to_graph,
         "--side", side,
-        "--nb_subjects", number_subjects]
+        "--nb_subjects", number_subjects,
+        "--qc_file", os.path.join(output_dir, "metadata", f"{study}_morphologist_summary.tsv")]
 if parallel:
     argv.append("--parallel")
 if bids:

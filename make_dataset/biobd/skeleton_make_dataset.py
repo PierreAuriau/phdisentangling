@@ -106,10 +106,11 @@ check = {"shape": (128, 152, 128),
 
 phenotype_filename = os.path.join(study_dir, 'participants.tsv')
 phenotype = pd.read_csv(phenotype_filename, sep='\t')
+phenotype = phenotype.rename(columns={"TIV": "tiv"})
 
 assert phenotype["study"].notnull().values.all(), "study column in phenotype has nan values"
 assert phenotype["site"].notnull().values.all(), "site column in phenotype has nan values"
-assert phenotype["TIV"].notnull().values.all(), "tiv column in phenotype has nan values"
+assert phenotype["tiv"].notnull().values.all(), "tiv column in phenotype has nan values"
 
 # Array creation
 skeleton_nii2npy(nii_path=nii_path, 
