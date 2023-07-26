@@ -47,13 +47,25 @@ def get_keys(filename, id_regex, ses_regex, acq_regex, run_regex):
     return keys
 
 
+def is_it_a_subject(filename):
+    if re.search('.minf$', filename):
+        return False
+    elif re.search('.sqlite$', filename):
+        return False
+    elif re.search('.html$', filename):
+        return False
+    else:
+        return True
+
+
 def make_morphologist_summary(morpho_dir, dataset_name, path_to_save, 
                               analysis="default_analysis", labelling_session="deepcnn_session_auto",
                               id_regex="sub-([^_/]+)", ses_regex="ses-([^_/]+)", 
-                              acq_regex="acq-([^_/]+)", run_regex="run-([^_/]+)"):
+                              acq_regex="acq-([^_/]+)", run_regex="run-([^_/]+)",
+                              check_voxel_size=False):
     
     
-    sbj_list = [os.path.basename(f) for f in glob.glob(f"{morpho_dir}/*")  if not re.search('.minf$', f)]
+    sbj_list = [os.path.basename(f) for f in glob.glob(f"{morpho_dir}/*")  if is_it_a_subject(f)]
     qc = OrderedDict({"participant_id":[], "session":[], "acquisition":[], "run":[], "ni_path": [], "qc": [], "comment": []})
     
     for sbj in tqdm(sbj_list):
@@ -103,15 +115,29 @@ def make_morphologist_summary(morpho_dir, dataset_name, path_to_save,
     if (df["acquisition"] == "").all():
         df = df.drop("acquisition", axis=1)
     print(f">> {(df['qc'] == 0).sum()}/{len(df)} subjects do not have morphologist output.")
+    
+    if check_voxel_size:
+        df["voxel_size"] = ""
+        cnt = 0
+        for i, sbj in df.iterrows:
+            if sbj["qc"] == 1:
+                img = aims.read(sbj["ni_path"])
+                voxel_size = np.asarray(img.header()["voxel_size"])
+                df.iloc[i]["voxel_size"] = voxel_size
+                if np.any(voxel_size < 1):
+                    df.iloc[i]["comment"] += "Be careful : MRI image has a voxel size under 1mm."
+                    cnt += 1
+        print(f"Number of MRI images under 1mm resolution : {cnt}")
+    
     path_to_qc = os.path.join(path_to_save, f"{dataset_name}_morphologist_summary.tsv")
     if os.path.exists(path_to_qc):
         ans = input(f"There is already a qc at : {path_to_save}. Do you want to replace it ? (y/n)")
         if ans == "y":
             df.to_csv(path_to_qc, sep="\t", index=False)
-            print("QC saved at", path_to_save)
+            print("Summary saved at", path_to_save)
     else:
         df.to_csv(path_to_qc, sep="\t", index=False)
-        print("QC saved at", path_to_save)
+        print("Summary saved at", path_to_save)
         
     return df
 
@@ -122,7 +148,7 @@ def make_deep_folding_summary(deep_folding_directories, side, dataset_name, path
     
     qc_df = None
     for name, directory in deep_folding_directories.items():
-        file_list = [os.path.basename(f) for f in glob.glob(os.path.join(directory, side, "*"))  if not re.search('.minf$', f)]
+        file_list = [f for f in glob.glob(os.path.join(directory, side, "*"))  if not re.search('.minf$', f)]
         print(f"Number of {name} files : {len(file_list)}")
     
         qc = OrderedDict({"participant_id":[], "session":[], "acquisition":[], "run":[], f"ni_path_{name}": []})
@@ -151,6 +177,7 @@ def make_deep_folding_summary(deep_folding_directories, side, dataset_name, path
         qc_df = qc_df.drop("acquisition", axis=1)
     print(f">> {(qc_df['qc'] == 0).sum()}/{len(qc_df)} subjects do not have deep_folding output.")
     
+    
     path_to_qc = os.path.join(path_to_save, f"{dataset_name}_deep_folding_summary.tsv")
     if os.path.exists(path_to_qc):
         ans = input(f"There is already a summary at : {path_to_save}. Do you want to replace it ? (y/n)")
@@ -165,7 +192,9 @@ def make_deep_folding_summary(deep_folding_directories, side, dataset_name, path
     return qc_df
 
 def merge_skeleton_summaries(morphologist_df, deep_folding_df, dataset_name, path_to_save):
+    # FIXME : standardize dataframes before saving ?
     unique_keys = list({"participant_id", "session", "acquisition", "run"} & set(morphologist_df.columns) & set(deep_folding_df.columns))
+    
     df_merged = pd.merge(morphologist_df, deep_folding_df, on=unique_keys, 
                          how="outer", validate="1:1", suffixes=("_morphologist","_deep_folding"))
     df_merged["qc_deep_folding"] = df_merged["qc_deep_folding"].fillna(0)
