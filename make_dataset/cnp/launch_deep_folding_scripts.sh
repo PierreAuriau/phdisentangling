@@ -5,8 +5,9 @@ STUDY="cnp"
 
 SRC_DIR="/neurospin/psy_sbox/${STUDY}/derivatives/morphologist-2021/subjects"
 SKELETON_DIR="/neurospin/psy_sbox/analyses/202205_predict_neurodev/data/skeletons/${STUDY}/raw/wo_ventricles"
+FOLDLABEL_DIR="/neurospin/psy_sbox/analyses/202205_predict_neurodev/data/foldlabels/${STUDY}/raw"
 
-NB_SUBJECT="all" #"all"
+NB_SUBJECT="10" #"all"
 
 # Transforms
 TRANSFORM_DIR="/neurospin/psy_sbox/analyses/202205_predict_neurodev/data/skeletons/${STUDY}/transforms"
@@ -31,4 +32,7 @@ DEEP_FOLDING_DIR="/neurospin/dico/pauriau/git/deep_folding/deep_folding"
 #python3 brainvisa/generate_skeletons.py --src_dir $SRC_DIR --output_dir $SKELETON_DIR --side $SIDE --path_to_graph $PATH_TO_GRAPH --nb_subjects $NB_SUBJECT -vvv -b
 
 # Resample skeletons
-python3 ${DEEP_FOLDING_DIR}/brainvisa/resample_files.py --src_dir $SKELETON_DIR --output_dir $RESAMPLED_SKELETON_DIR --side $SIDE --input_type "skeleton" --transform_dir $TRANSFORM_DIR --out_voxel_size $VOXEL_SIZE -e $OUTPUT_FILENAME -f $SRC_FILENAME -n ${NB_SUBJECT} -a
+#python3 ${DEEP_FOLDING_DIR}/brainvisa/resample_files.py --src_dir $SKELETON_DIR --output_dir $RESAMPLED_SKELETON_DIR --side $SIDE --input_type "skeleton" --transform_dir $TRANSFORM_DIR --out_voxel_size $VOXEL_SIZE -e $OUTPUT_FILENAME -f $SRC_FILENAME -n ${NB_SUBJECT} -a
+
+#Generate foldlabels
+python3 ${DEEP_FOLDING_DIR}/brainvisa/generate_foldlabels.py --src_dir $SRC_DIR --output_dir $FOLDLABEL_DIR --side $SIDE --path_to_graph $PATH_TO_GRAPH --nb_subjects $NB_SUBJECT --bids
