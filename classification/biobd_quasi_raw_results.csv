@@ -1,0 +1,2 @@
+,acc_cv,acc_train,bacc_train,auc_train,acc_test,bacc_test,auc_test,best_params
+0,0.6471698113207547,1.0,1.0,1.0,0.6015037593984962,0.6081511839708561,0.6318306010928961,{'C': 0.001}
