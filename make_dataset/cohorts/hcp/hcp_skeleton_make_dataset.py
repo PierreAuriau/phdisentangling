@@ -17,11 +17,13 @@ from deep_folding.brainvisa import generate_ICBM2009c_transforms
 from deep_folding.brainvisa import remove_ventricle
 from deep_folding.brainvisa import resample_files 
 # Make dataset
-from make_dataset.src.makedataset.make_skeleton_summary import make_morphologist_summary, \
+from makedataset.logs import setup_logging
+from makedataset.summary import make_morphologist_summary, \
                                   make_deep_folding_summary, \
                                   merge_skeleton_summaries
-from make_dataset.src.makedataset.make_dataset_utils import skeleton_nii2npy
+from makedataset.nii2npy import skeleton_nii2npy
 
+setup_logging(level="info")
 
 study = 'hcp'
 

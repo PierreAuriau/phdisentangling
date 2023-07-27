@@ -12,14 +12,12 @@ Skeletons need to be pre-processed with the morphologist_make_dataset.py script
 # Module import
 
 import os
-import sys
 import re
 
 import numpy as np
 import pandas as pd
 
-sys.path.append(os.path.abspath('../..'))
-from make_dataset_utils import skeleton_nii2npy
+from makedataset.nii2npy import skeleton_nii2npy
 
 neurospin = "/neurospin"
 

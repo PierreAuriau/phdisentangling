@@ -12,9 +12,15 @@ import os
 import pandas as pd
 import numpy as np
 # deep_folding
+from deep_folding.brainvisa import generate_foldlabels
+from deep_folding.brainvisa import generate_ICBM2009c_transforms
+from deep_folding.brainvisa import remove_ventricle
+from deep_folding.brainvisa import resample_files
 # Make dataset
-from make_dataset.src.makedataset.make_skeleton_summary import make_morphologist_summary
-from make_dataset.src.makedataset.make_dataset_utils import skeleton_nii2npy
+from makedataset.summary import make_morphologist_summary, \
+                                make_deep_folding_summary, \
+                                merge_skeleton_summaries
+from makedataset.nii2npy import skeleton_nii2npy
 
 
 study = 'cnp'

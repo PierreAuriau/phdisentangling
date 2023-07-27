@@ -7,7 +7,7 @@ Created on Tue Aug  9 16:41:10 2022
 """
 import os, sys
 # Make dataset
-sys.path.append(os.path.abspath('..'))
+sys.path.append(os.path.abspath('../..'))
 from make_dataset_utils import skeleton_nii2npy
 import pandas as pd
 import numpy as np
