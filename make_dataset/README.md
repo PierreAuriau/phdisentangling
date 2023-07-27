@@ -1,9 +1,25 @@
 # Make Datasets
-This folder contains all the scripts to generate skeleton datasets for each study. The scripts create a numpy array with all the skeleton images from the skeleton graphs which are the outputs of the Brainvisa/Morphologist pipeline. These numpy arrays serve as inputs of Deep Learning models.
+This folder contains all the scripts to generate skeleton datasets.
+In the `src` directory, there is a litlle package `makedataset` with all the functions to create a numpy array and a participant dataframe from skeleton volumes.
+In the `cohorts` directory, the example scripts for some clinical studies. The scripts create a numpy array with all the skeleton images from the skeleton graphs which are the outputs of the Brainvisa/Morphologist pipeline. These numpy arrays serve as inputs of Deep Learning models.
 
 # Prerequesites
 To process skeleton graphs, you need to install the Brainvisa container (see : <https://brainvisa.info/web/download.html>) and the deep_folding repertory (see : <https://github.com/neurospin/deep_folding>). 
-
+``` shell
+# Launch brainvisa container
+brainvisa/bin/bv bash
+# Create virtual environnement
+python3 -m venv --system-site-packages myenv
+source myenv/bin/activate
+# Install deep_folding
+git clone https://github.com/neurospin/deep_folding.git
+cd deep_folding
+pip install -e .
+# Install makedataset
+git clone https://github.com/PierreAuriau/phdisentangling.git
+cd phdisentangling/make_dataset
+pip install -e .
+```
 # Process 
 
 ## deep_folding
