@@ -1,69 +1,31 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Functions to create morphologist and deep_folding summaries.
+Summaries are dataframes with participant id column and a
+qc column (1 if the image has an output 0 else)
+"""
+import logging
 import os
 import glob
-import pandas as pd
-from collections import OrderedDict
 import re
-from tqdm import tqdm
 import numpy as np
+import pandas as pd
+from tqdm import tqdm
+from collections import OrderedDict
 
-def get_keys(filename, id_regex, ses_regex, acq_regex, run_regex):
-    """
-    Extract keys from bids filename. Check consistency of filename.
-    """
-        
-    keys = OrderedDict()
+from soma import aims
 
-    participant_id = re.compile(id_regex).findall(filename)
-    if len(set(participant_id)) != 1:
-        raise ValueError('Found several or no participant id', participant_id, 'in path', filename)
-    keys["participant_id"] = participant_id[0]
-
-    session = re.compile(ses_regex).findall(filename)
-    if len(set(session)) > 1:
-        raise ValueError('Found several sessions', session, 'in path', filename)
-
-    elif len(set(session)) == 1:
-        keys["session"] = session[0]
-
-    else:
-        keys["session"] = ""
-    
-    acquisition = re.compile(acq_regex).findall(filename)
-    if len(set(acquisition)) == 1:
-        keys["acquisition"] = acquisition[0]
-    else:
-        keys["acquisition"] = ""
-
-    run = re.compile(run_regex).findall(filename)
-    if len(set(run)) == 1:
-        keys["run"] = run[0]
-
-    else:
-        keys["run"] = ""
-	
-
-    keys["ni_path"] = filename
-        
-    return keys
+from makedataset.utils import get_keys
 
 
-def is_it_a_subject(filename):
-    if re.search('.minf$', filename):
-        return False
-    elif re.search('.sqlite$', filename):
-        return False
-    elif re.search('.html$', filename):
-        return False
-    else:
-        return True
-
-
-def make_morphologist_summary(morpho_dir, dataset_name, path_to_save, 
+def make_morphologist_summary(morpho_dir, dataset_name, path_to_save,
                               analysis="default_analysis", labelling_session="deepcnn_session_auto",
                               id_regex="sub-([^_/]+)", ses_regex="ses-([^_/]+)", 
                               acq_regex="acq-([^_/]+)", run_regex="run-([^_/]+)",
                               check_voxel_size=False):
-    
+
+    logger = logging.getLogger("morphologist_summary")
     
     sbj_list = [os.path.basename(f) for f in glob.glob(f"{morpho_dir}/*")  if is_it_a_subject(f)]
     qc = OrderedDict({"participant_id":[], "session":[], "acquisition":[], "run":[], "ni_path": [], "qc": [], "comment": []})
@@ -114,7 +76,7 @@ def make_morphologist_summary(morpho_dir, dataset_name, path_to_save,
         df = df.drop("run",  axis=1)
     if (df["acquisition"] == "").all():
         df = df.drop("acquisition", axis=1)
-    print(f">> {(df['qc'] == 0).sum()}/{len(df)} subjects do not have morphologist output.")
+    logger.info(f"{(df['qc'] == 0).sum()}/{len(df)} subjects do not have morphologist output.")
     
     if check_voxel_size:
         df["voxel_size"] = ""
@@ -127,17 +89,17 @@ def make_morphologist_summary(morpho_dir, dataset_name, path_to_save,
                 if np.any(voxel_size < 1):
                     df.iloc[i]["comment"] += "Be careful : MRI image has a voxel size under 1mm."
                     cnt += 1
-        print(f"Number of MRI images under 1mm resolution : {cnt}")
+        logger.info(f"Number of MRI images under 1mm resolution : {cnt}")
     
     path_to_qc = os.path.join(path_to_save, f"{dataset_name}_morphologist_summary.tsv")
     if os.path.exists(path_to_qc):
         ans = input(f"There is already a qc at : {path_to_save}. Do you want to replace it ? (y/n)")
         if ans == "y":
             df.to_csv(path_to_qc, sep="\t", index=False)
-            print("Summary saved at", path_to_save)
+            logger.info(f"Summary saved at {path_to_save}")
     else:
         df.to_csv(path_to_qc, sep="\t", index=False)
-        print("Summary saved at", path_to_save)
+        logger.info(f"Summary saved at {path_to_save}")
         
     return df
 
@@ -145,11 +107,12 @@ def make_morphologist_summary(morpho_dir, dataset_name, path_to_save,
 def make_deep_folding_summary(deep_folding_directories, side, dataset_name, path_to_save,
                               id_regex="sub-([^_/]+)", ses_regex="ses-([^_/]+)", 
                               acq_regex="acq-([^_/]+)", run_regex="run-([^_/]+)"):
-    
+
+    logger = logging.getLogger("deep_folding_summary")
     qc_df = None
     for name, directory in deep_folding_directories.items():
         file_list = [f for f in glob.glob(os.path.join(directory, side, "*"))  if not re.search('.minf$', f)]
-        print(f"Number of {name} files : {len(file_list)}")
+        logger.info(f"Number of {name} files : {len(file_list)}")
     
         qc = OrderedDict({"participant_id":[], "session":[], "acquisition":[], "run":[], f"ni_path_{name}": []})
     
@@ -175,24 +138,25 @@ def make_deep_folding_summary(deep_folding_directories, side, dataset_name, path
         qc_df = qc_df.drop("run",  axis=1)
     if (qc_df["acquisition"] == "").all():
         qc_df = qc_df.drop("acquisition", axis=1)
-    print(f">> {(qc_df['qc'] == 0).sum()}/{len(qc_df)} subjects do not have deep_folding output.")
-    
-    
+    logger.info(f"{(qc_df['qc'] == 0).sum()}/{len(qc_df)} subjects do not have deep_folding output.")
+
     path_to_qc = os.path.join(path_to_save, f"{dataset_name}_deep_folding_summary.tsv")
     if os.path.exists(path_to_qc):
         ans = input(f"There is already a summary at : {path_to_save}. Do you want to replace it ? (y/n)")
         if ans == "y":
             qc_df.to_csv(path_to_qc, sep="\t", index=False)
-            print("QC saved at", path_to_save)
+            logger.info(f"QC saved at {path_to_save}")
         else:
-            print("Aborting...")
+            logger.warning("The qc file has not be saved")
     else:
         qc_df.to_csv(path_to_qc, sep="\t", index=False)
-        print("QC saved at", path_to_save)
+        logger.info(f"QC saved at {path_to_save}")
     return qc_df
 
 def merge_skeleton_summaries(morphologist_df, deep_folding_df, dataset_name, path_to_save):
     # FIXME : standardize dataframes before saving ?
+
+    logger = logging.getLogger("skeleton_summary")
     unique_keys = list({"participant_id", "session", "acquisition", "run"} & set(morphologist_df.columns) & set(deep_folding_df.columns))
     
     df_merged = pd.merge(morphologist_df, deep_folding_df, on=unique_keys, 
@@ -201,7 +165,7 @@ def merge_skeleton_summaries(morphologist_df, deep_folding_df, dataset_name, pat
     df_merged["qc_deep_folding"] = df_merged["qc_deep_folding"].astype(int)
     mask = (df_merged["qc_morphologist"] == 1) & (df_merged["qc_deep_folding"] == 0)
     df_merged.loc[mask, "comment"] = "deep_folding error"
-    print(f">>> {mask.sum()} subject(s) encountered a deep folding error")
+    logger.info(f"{mask.sum()} subject(s) encountered a deep folding error")
     
     df_merged["qc"] = df_merged[["qc_morphologist", "qc_deep_folding"]].prod(axis=1).astype(int)
     end_cols = ["qc_morphologist", "qc_deep_folding", "qc", "comment"]
@@ -212,12 +176,12 @@ def merge_skeleton_summaries(morphologist_df, deep_folding_df, dataset_name, pat
         ans = input(f"There is already a summary at : {path_to_save}. Do you want to replace it ? (y/n)")
         if ans == "y":
             df_merged.to_csv(path_to_qc, sep="\t", index=False)
-            print("QC saved at", path_to_save)
+            logger.info(f"QC saved at {path_to_save}")
         else:
-            print("Aborting...")
+            logger.warning("The qc file has not be saved")
     else:
         df_merged.to_csv(path_to_qc, sep="\t", index=False)
-        print("QC saved at", path_to_save)
+        logger.info(f"QC saved at {path_to_save}")
     
     return df_merged
 
