@@ -7,7 +7,7 @@ To launch the script, you need to be in the brainvisa container and to install d
 See the repository: https://github.com/neurospin/deep_folding
 
 """
-
+import logging
 import os
 import pandas as pd
 import numpy as np
@@ -23,9 +23,10 @@ from makedataset.summary import make_morphologist_summary, \
                                   merge_skeleton_summaries
 from makedataset.nii2npy import skeleton_nii2npy
 
-setup_logging(level="info")
-
 study = 'hcp'
+
+setup_logging(level="info")
+logger = logging.getLogger(f"make_{study}_skeleton_dataset")
 
 # Study directories
 neurospin = '/neurospin'
@@ -35,15 +36,13 @@ morpho_dir = os.path.join(neurospin, 'dico', 'data', 'bv_databases', 'human', 'n
 # Output directory where to put all generated files
 output_dir = os.path.join(neurospin, "psy_sbox", "analyses", "202205_predict_neurodev", "data", "skeletons", study)
 
-# Path towards the deep_folding scripts
-deep_folding_dir = os.path.join(neurospin, "dico", "pauriau", "git", "deep_folding", "brainvisa")
-
 # Parameters
 voxel_size = "1.5" #resampled voxel size
 junction = "thin" # "wide" or "thin"
 side = "F" # "F", "L" or "R"
 bids = False
 
+# Filenames
 labelling_session = "deepcnn_auto"
 skeleton_filename = "skeleton_generated"
 without_ventricle_skeleton_filename = "skeleton_without_ventricle"
@@ -195,9 +194,9 @@ check = {"shape": (128, 152, 128),
 # Phenotype
 phenotype_filename = os.path.join(study_dir, 'participants.tsv')
 phenotype = pd.read_csv(phenotype_filename, sep='\t')
-assert phenotype["study"].notnull().values.all(), "study column in phenotype has nan values"
-assert phenotype["site"].notnull().values.all(), "site column in phenotype has nan values"
-assert phenotype["tiv"].notnull().values.all(), "tiv column in phenotype has nan values"
+assert phenotype["study"].notnull().values.all(), logger.error("study column in phenotype has nan values")
+assert phenotype["site"].notnull().values.all(), logger.error("site column in phenotype has nan values")
+assert phenotype["tiv"].notnull().values.all(), logger.error("tiv column in phenotype has nan values")
 
 # Quality checks
 vbm_qc = pd.read_csv(os.path.join(study_dir, "derivatives", "cat12-12.6_vbm_qc", "qc.tsv"), sep="\t")
