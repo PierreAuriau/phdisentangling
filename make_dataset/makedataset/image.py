@@ -4,10 +4,10 @@
 Functions to load and to transform nii files.
 """
 import logging
-
 import numpy as np
 import pandas as pd
 import nibabel
+from makedataset.utils import get_keys
 
 def load_images(ni_participants_df, check=dict(), resampling=None, dtype=None):
     """
@@ -91,9 +91,6 @@ def load_images_with_aims(ni_participants_df, check=dict(), dtype=None, stored_d
         assert np.all(storage == check["storage"]), \
             print(f"Ref image does not have the right storage : {storage} / {check['storage']}")
 
-    if stored_data:
-        ni_imgs = list(map(lambda v: get_stored_data_with_aims(v), ni_imgs))
-
     assert np.all([np.all(np.array(img.header()["voxel_size"]) == voxel_size) for img in ni_imgs]), \
         print(f"All the images do not have the same voxel size {voxel_size}")
     assert np.all([np.all(np.array(img.header()["volume_dimension"]) == shape) for img in ni_imgs]), \
@@ -102,6 +99,9 @@ def load_images_with_aims(ni_participants_df, check=dict(), dtype=None, stored_d
         print(f"All the images do not have the same transformation {transformation}")
     assert np.all([np.all(np.array(img.header()["storage_to_memory"]) == storage) for img in ni_imgs]), \
         print(f"All the images do not have the same storage {storage}")
+    
+    if stored_data:
+        ni_imgs = list(map(lambda v: get_stored_data_with_aims(v), ni_imgs))
 
     ni_arr = np.stack([np.expand_dims(np.squeeze(np.array(img)), axis=0) for img in ni_imgs])
 
