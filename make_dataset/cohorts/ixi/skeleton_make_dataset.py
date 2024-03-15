@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
-Script to create a numpy array with all skeletons 
-of the ABIDE1 dataset
 
-Skeletons need to be pre-processed with the morphologist_make_dataset.py script
+Pipeline to create skeleton dataset for the ixi study
+To launch the script, you need to be in the brainvisa container and to install deep_folding
+See the repository: https://github.com/neurospin/deep_folding
 
 """
 
@@ -29,13 +28,10 @@ from makedataset.summary import make_morphologist_summary, \
 from makedataset.nii2npy import skeleton_nii2npy
 from makedataset.metadata import standardize_df
 
-
-# Study
-study = "abide1"
+study = 'ixi'
 
 setup_logging(level="info")
 logger = logging.getLogger(f"make_{study}_skeleton_dataset")
-
 
 # Directories
 neurospin = "/neurospin"
@@ -54,7 +50,7 @@ do_skel = "True" # apply skeletonisation
 bids = True
 
 # Filenames
-labelling_session = "default_session_auto"
+labelling_session = "deepcnn_session_auto"
 skeleton_filename = "skeleton_generated"
 without_ventricle_skeleton_filename = "skeleton_without_ventricle"
 resampled_skeleton_filename = "resampled_skeleton"
@@ -194,66 +190,65 @@ sbj2remove = morphologist_qc[morphologist_qc["qc"] == 0]
 
 for index, sbj in sbj2remove.iterrows() :
     skel_df.loc[(skel_df["participant_id"] == sbj["participant_id"])
-                        & (skel_df["session"] == sbj["session"]), ["qc", "comment"]] = morphologist_qc[["qc", "comment"]]
+                        & (skel_df["session"] == sbj["session"]), ["qc", "comment"]] = morphologist_qc[["qc", "comments"]]
 
 path2save = os.path.join(output_dir, "metadata", f"{study}_skeleton_qc.tsv")
 skel_df.to_csv(path2save, sep="\t", index=False)
 
 logger.info(f"Skeleton QC saved at : {path2save}")
 """
-# MAKE SKELETON ARRAY
 
+# MAKE SKELETON ARRAY
+"""
 # Parameters
 side = "F"
-regex = f"{side}resampled_skeleton_sub-*.nii.gz"
+skeleton_size = True
+stored_data = False
+regex = f"{side}resampled_skeleton_sub-*_ses-*.nii.gz"
 nii_path = os.path.join(resampled_skeleton_dir, side, regex)
-output_path = os.path.join(output_dir, "arrays", "stored_data")
+output_path = os.path.join(output_dir, "arrays", "new_participants")
+
 check = {"shape": (128, 152, 128), 
         "voxel_size": (1.5, 1.5, 1.5),
         "transformation": np.array([-1, 0, 0, 96, 0, -1, 0, 96, 0, 0, -1, 114, 0, 0, 0, 1]),
-        "storage": np.array([-1, 0, 0, 127, 0, -1, 0, 151, 0, 0, -1, 127, 0, 0, 0, 1])
-        }
-skeleton_size = True
-stored_data = True
+        "storage": np.array([-1, 0, 0, 127, 0, -1, 0, 151, 0, 0, -1, 127, 0, 0, 0, 1])}
 
-# Quality checks
-qc_vbm = pd.read_csv(os.path.join(study_dir, "derivatives", 
-                                  "cat12-12.6_vbm_qc", "qc.tsv"), sep="\t")
-qc_vbm = qc_vbm.drop("run", axis=1)
+# Quality Checks
+qc_vbm_filename = os.path.join(study_dir, "derivatives", "cat12-12.6_vbm_qc", "qc.tsv")
+qc_vbm = pd.read_csv(qc_vbm_filename, sep='\t')
 qc_vbm = standardize_df(qc_vbm, id_types=ID_TYPES)
-qc_skeleton = pd.read_csv(os.path.join(output_dir, "metadata", 
-                                          f"{study}_skeleton_qc.tsv"), sep="\t", dtype=ID_TYPES)
+qc_vbm = qc_vbm.drop("run", axis=1) # remove run
+qc_skel_filename = os.path.join(output_dir, "metadata", f"{study}_skeleton_qc.tsv")
+qc_skel = pd.read_csv(qc_skel_filename, sep='\t', dtype=ID_TYPES)
 
-qc = pd.merge(qc_vbm, qc_skeleton, how="outer", on=["participant_id", "session"],
-              validate="1:1", suffixes=("_vbm", "_skeleton"))
-qc["qc_skeleton"] = qc["qc_skeleton"].fillna(0)
+qc = pd.merge(qc_vbm, qc_skel, how="outer", on=["participant_id", "session"], validate="1:1", suffixes=("_vbm", "_skeleton"))
 qc["qc_vbm"] = qc["qc_vbm"].fillna(0)
+qc["qc_skeleton"] = qc["qc_skeleton"].fillna(0)
 qc["qc"] = qc[["qc_vbm", "qc_skeleton"]].prod(axis=1).astype(int)
 
 # Phenotype
-# TODO : change filename into participants.tsv when updated
 participants_filename = os.path.join(study_dir, '20231108_participants.tsv')
 participants_df = pd.read_csv(participants_filename, sep='\t')
 participants_df["participant_id"] = participants_df["participant_id"].apply(lambda s: re.search("sub-([a-zA-Z0-9]+)", s)[1]) #remove "sub-"
 participants_df = participants_df.drop("session", axis=1) # remove session column
 phenotype = standardize_df(participants_df, id_types=ID_TYPES)
 
-
 assert phenotype["study"].notnull().values.all(), "study column in phenotype has nan values"
 assert phenotype["site"].notnull().values.all(), "site column in phenotype has nan values"
 assert phenotype["diagnosis"].notnull().values.all(), "diagnosis column in phenotype has nan values"
 
 # Array creation
-skeleton_nii2npy(nii_path=nii_path, 
-                 phenotype=phenotype, 
-                 dataset_name=study, 
-                 output_path=output_path, 
-                 qc=qc, 
-                 sep=',',
-                 check=check,
-                 data_type="float32",
-                 id_types=ID_TYPES,
-                 side=side,
-                 skeleton_size=skeleton_size,
-                 stored_data=stored_data)
 
+skeleton_nii2npy(nii_path=nii_path, 
+                  phenotype=phenotype, 
+                  dataset_name=study, 
+                  output_path=output_path, 
+                  qc=qc, 
+                  sep=',',
+                  data_type="float32",
+                  id_types=ID_TYPES,
+                  check=check, 
+                  side=side,
+                  skeleton_size=skeleton_size,
+                  stored_data=stored_data)
+"""

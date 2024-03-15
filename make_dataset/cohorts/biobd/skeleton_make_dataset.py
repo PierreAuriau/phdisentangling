@@ -96,6 +96,7 @@ else:
 
 
 # DEEP FOLDING
+"""
 # Generate transform files
 argv = ["--src_dir", src_dir,
         "--output_dir", transform_dir,
@@ -197,15 +198,16 @@ path2save = os.path.join(output_dir, "metadata", f"{study}_skeleton_qc.tsv")
 skel_df.to_csv(path2save, sep="\t", index=False)
 
 logger.info(f"Skeleton QC saved at : {path2save}")
+"""
 
 # MAKE SKELETON ARRAY
 
 # Parameters
-stored_data=False
+stored_data=True
 skeleton_size=True
 regex = f"{side}resampled_skeleton_*.nii.gz"
 nii_path = os.path.join(resampled_skeleton_dir, side, regex)
-output_path = os.path.join(output_dir, "arrays", "skeletonisation")
+output_path = os.path.join(output_dir, "arrays", "stored_data")
 
 check = {"shape": (128, 152, 128), 
         "voxel_size": (1.5, 1.5, 1.5),
@@ -215,6 +217,7 @@ check = {"shape": (128, 152, 128),
 # Phenotype
 phenotype_filename = os.path.join(study_dir, 'participants.tsv')
 phenotype = pd.read_csv(phenotype_filename, sep='\t')
+phenotype["sex"] = phenotype["sex"].apply(lambda s: {0.0: "M", 0: "M", 1: "F", 1.0: "F"}[s], axis=1)
 phenotype = standardize_df(phenotype, id_types=ID_TYPES)
 assert phenotype["study"].notnull().values.all(), logger.error("study column in phenotype has nan values")
 assert phenotype["site"].notnull().values.all(), logger.error("site column in phenotype has nan values")

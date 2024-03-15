@@ -45,4 +45,4 @@ DEEP_FOLDING_DIR="/neurospin/dico/pauriau/git/deep_folding/deep_folding"
 # Generate sulcuslabels
 #python3 ${DEEP_FOLDING_DIR}/brainvisa/generate_sulcuslabels.py --src_dir $SRC_DIR --output_dir $WOV_SULCUSLABEL_DIR --side $SIDE --path_to_graph $PATH_TO_GRAPH --labelling_session $LABELLING_SESSION  --dico_sulci $DICO_SULCI --nb_subjects $NB_SUBJECT --remove_ventricle --bids
 
-python3 ${DEEP_FOLDING_DIR}/brainvisa/generate_sulcuslabels.py --src_dir $SRC_DIR --output_dir $SULCUSLABEL_DIR --side $SIDE --path_to_graph $PATH_TO_GRAPH --labelling_session $LABELLING_SESSION  --dico_sulci $DICO_SULCI --nb_subjects $NB_SUBJECT --bids
+#python3 ${DEEP_FOLDING_DIR}/brainvisa/generate_sulcuslabels.py --src_dir $SRC_DIR --output_dir $SULCUSLABEL_DIR --side $SIDE --path_to_graph $PATH_TO_GRAPH --labelling_session $LABELLING_SESSION  --dico_sulci $DICO_SULCI --nb_subjects $NB_SUBJECT --bids

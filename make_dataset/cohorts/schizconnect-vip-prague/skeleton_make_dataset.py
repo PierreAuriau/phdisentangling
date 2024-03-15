@@ -95,7 +95,7 @@ else:
 
 
 # DEEP FOLDING
-
+"""
 # Generate transform files
 argv = ["--src_dir", src_dir,
         "--output_dir", transform_dir,
@@ -196,17 +196,17 @@ path2save = os.path.join(output_dir, "metadata", f"{study}_skeleton_qc.tsv")
 skel_df.to_csv(path2save, sep="\t", index=False)
 
 logger.info(f"Skeleton QC saved at : {path2save}")
-
+"""
 
 # MAKE SKELETON ARRAY
 
 # Parameters
 side = "F"
 skeleton_size = True
-stored_data = False
+stored_data = True
 regex = f"{side}resampled_skeleton_sub-*_ses-*.nii.gz"
 nii_path = os.path.join(resampled_skeleton_dir, side, regex)
-output_path = os.path.join(output_dir, "arrays", "new_participants")
+output_path = os.path.join(output_dir, "arrays", "stored_data")
 
 check = {"shape": (128, 152, 128), 
         "voxel_size": (1.5, 1.5, 1.5),

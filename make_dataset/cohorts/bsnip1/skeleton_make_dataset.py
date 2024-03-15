@@ -94,7 +94,7 @@ else:
 
 
 # DEEP FOLDING
-
+"""
 # Generate transform files
 argv = ["--src_dir", src_dir,
         "--output_dir", transform_dir,
@@ -219,15 +219,15 @@ path2save = os.path.join(output_dir, "metadata", f"{study}_skeleton_qc.tsv")
 skel_df.to_csv(path2save, sep="\t", index=False)
 
 logger.info(f"Skeleton QC saved at : {path2save}")
-
+"""
 
 # MAKE SKELETON ARRAY
 
 # Parameters
 side = "F"
 skeleton_size = True
-stored_data = False
-output_path = os.path.join(output_dir, "arrays", "new_participants")
+stored_data = True
+output_path = os.path.join(output_dir, "arrays", "stored_data")
 
 # Nii_path
 regex = f"{side}resampled_skeleton_sub-*_ses-*_acq-*_run-*.nii.gz"
@@ -271,6 +271,7 @@ qc["qc"] = qc[["qc_vbm", "qc_skeleton"]].prod(axis=1).astype(int)
 participants_filename = os.path.join(study_dir, '20231108_participants.tsv')
 participants_df = pd.read_csv(participants_filename, sep='\t')
 participants_df["participant_id"] = participants_df["participant_id"].apply(lambda s: re.search("sub-([a-zA-Z0-9]+)", s)[1]) #remove "sub-"
+participants_df["study"] = participants_df["study"].apply(lambda s: s + "1") # Change BSNIP into BSNIP1
 phenotype = standardize_df(participants_df, id_types=ID_TYPES)
 
 assert phenotype["study"].notnull().values.all(), "study column in phenotype has nan values"

@@ -202,10 +202,10 @@ logger.info(f"Skeleton QC saved at : {path2save}")
 # Parameters
 side = "F"
 skeleton_size = True
-stored_data = False
+stored_data = True
 regex = f"{side}resampled_skeleton_sub-*_ses-*.nii.gz"
 nii_path = os.path.join(resampled_skeleton_dir, side, regex)
-output_path = os.path.join(output_dir, "arrays", "new_participants")
+output_path = os.path.join(output_dir, "arrays", "stored_data")
 
 check = {"shape": (128, 152, 128), 
         "voxel_size": (1.5, 1.5, 1.5),
