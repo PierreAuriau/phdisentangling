@@ -54,6 +54,8 @@ def is_it_a_subject(filename):
         return False
     elif re.search('.html$', filename):
         return False
+    elif re.search("snapshots", filename):
+        return False
     else:
         return True
 
