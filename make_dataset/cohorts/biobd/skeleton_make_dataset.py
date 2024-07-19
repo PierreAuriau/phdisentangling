@@ -77,7 +77,7 @@ transform_dir = os.path.join(output_dir, "transforms")
 without_ventricle_skeleton_dir = os.path.join(output_dir, "without_ventricle", "raw")
 
 # Output directory where to put resample skeleton files
-resampled_skeleton_dir = os.path.join(output_dir, "without_ventricle", f"{voxel_size}mm")
+resampled_skeleton_dir = os.path.join(output_dir, "without_ventricle", f"new_resampling")
 
 
 # Morphologist summary
@@ -207,7 +207,7 @@ stored_data=True
 skeleton_size=True
 regex = f"{side}resampled_skeleton_*.nii.gz"
 nii_path = os.path.join(resampled_skeleton_dir, side, regex)
-output_path = os.path.join(output_dir, "arrays", "stored_data")
+output_path = os.path.join(output_dir, "arrays", "new_skeletonisation")
 
 check = {"shape": (128, 152, 128), 
         "voxel_size": (1.5, 1.5, 1.5),
@@ -217,13 +217,14 @@ check = {"shape": (128, 152, 128),
 # Phenotype
 phenotype_filename = os.path.join(study_dir, 'participants.tsv')
 phenotype = pd.read_csv(phenotype_filename, sep='\t')
-phenotype["sex"] = phenotype["sex"].apply(lambda s: {0.0: "M", 0: "M", 1: "F", 1.0: "F"}[s], axis=1)
+phenotype["sex"] = phenotype["sex"].apply(lambda s: {0.0: "M", 0: "M", 1: "F", 1.0: "F"}[s])
 phenotype = standardize_df(phenotype, id_types=ID_TYPES)
 assert phenotype["study"].notnull().values.all(), logger.error("study column in phenotype has nan values")
 assert phenotype["site"].notnull().values.all(), logger.error("site column in phenotype has nan values")
 assert phenotype["tiv"].notnull().values.all(), logger.error("tiv column in phenotype has nan values")
 
 # Quality checks
+# FIXME : take QC 12.7 ?
 qc_vbm = pd.read_csv(os.path.join(study_dir, "derivatives", "cat12-12.6_vbm_qc", "qc.tsv"), sep="\t")
 map_subject_run = json.load(open(os.path.join(output_dir, "metadata", "mapping_all_subjects_run.json"), "r"))
 for sbj in map_subject_run.keys():
@@ -243,7 +244,7 @@ qc["qc"] = qc[["qc_vbm", "qc_skeleton"]].prod(axis=1).astype(int)
 skeleton_nii2npy(nii_path=nii_path, 
                  phenotype=phenotype, 
                  dataset_name=study, 
-                 output_path=output_path, 
+                 output_path=output_path,  
                  qc=qc, 
                  sep=',',
                  check=check,
