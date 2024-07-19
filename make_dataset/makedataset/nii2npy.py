@@ -14,6 +14,7 @@ import glob
 from makedataset.metadata import load_qc, standardize_df, make_participants_df, merge_ni_df
 from makedataset.image import load_images, load_images_with_aims
 from makedataset.output import output_cat12, output_quasi_raw, output_skeleton, output_dti
+from makedataset.utils import global_scaling
 
 
 def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, side, qc=None,
@@ -23,10 +24,7 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, side, qc=No
                      id_regex='sub-([^/_\.]+)', session_regex='ses-([^_/\.]+)',
                      acq_regex='acq-([^_/\.]+)', run_regex='run-([^_/\.]+)', preproc="skeleton",
                      tiv_columns=[], participant_columns=[]):
-    
-    # FIXME : put standardize_df in merge_df ?
-    # FIXME : make foldlabel_nii2npy to have the same participant_id order ?
-    
+        
     logger = logging.getLogger("skeleton_nii2npy")
 
     # Loading QC
@@ -121,6 +119,129 @@ def skeleton_nii2npy(nii_path, phenotype, dataset_name, output_path, side, qc=No
     # Deallocate the memory
     del ni_arr
 
+def cat12_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, sep='\t',
+                  id_types={"participant_id": str, "session": int, "acq": int, "run": int},
+                  check=dict(shape=(121, 145, 121), zooms=(1.5, 1.5, 1.5)),
+                  data_type="float32", 
+                  id_regex='sub-([^/_\.]+)', session_regex='ses-([^_/\.]+)',
+                  acq_regex='acq-([^_/\.]+)', run_regex='run-([^_/\.]+)',
+                  tiv_columns=[], participants_columns=[]):
+    
+    logger = logging.getLogger("cat12_nii2npy")
+
+    # Loading QC
+    if qc is not None:
+        qc = load_qc(qc)
+        qc = standardize_df(qc, id_types)
+
+    # Loading phenotype dataframe
+    keys_required = {'participant_id', 'age', 'sex', 'diagnosis', 'site', 'study'}
+    phenotype = standardize_df(phenotype, id_types)
+    assert keys_required.issubset(phenotype.columns), \
+        logger.error(f"Missing keys {set(keys_required) - set(phenotype.columns)} "
+                     f"in phenotype Dataframe")
+    
+    # Remove participants with missing keys_required
+    null_or_nan_mask = phenotype[keys_required].isna().any(axis=1)
+    if null_or_nan_mask.sum() > 0:
+        logger.warning(f'{null_or_nan_mask.sum()} participant_id will not be considered because of '
+                       f'missing required values:\n{list(phenotype[null_or_nan_mask].participant_id.values)}')
+    participants_df = phenotype[~null_or_nan_mask]
+
+    """
+    # Save 3 files:
+    participants_filename = output_cat12(dataset_name, output_path, mri_preproc='participants', ext='tsv')
+    rois_filename = output_cat12(dataset_name, output_path, mri_preproc='rois', scaling="gs", ext='tsv')
+    vbm_filename = output_cat12(dataset_name, output_path, mri_preproc='mwp1', scaling="gs", ext='npy')"""
+
+    #  Read nii files
+    ni_filenames = glob.glob(nii_path)
+    assert len(ni_filenames) > 0, \
+        logger.error(f"No ni files have been found, wrong ni_path : {nii_path}")
+
+    #  Load images, intersect with pop and do preprocessing and dump 5d npy
+    logger.info(f"# {dataset_name}")
+
+    logger.info("# 1) Read all file names")
+    logger.info(f'{len(ni_filenames)} ni files have been found')
+
+    ni_participants_df = make_participants_df(ni_filenames,
+                                              id_regex=id_regex,
+                                              session_regex=session_regex,
+                                              acq_regex=acq_regex,
+                                              run_regex=run_regex)
+    ni_participants_df = standardize_df(ni_participants_df, id_types)
+
+    logger.info("# 2) Merge nii's participant_id with participants dataframe")
+    logger.info(f"{len(participants_df)} subjects have a phenotype.")
+    ni_participants_df, ni_rois_df = merge_ni_df(ni_participants_df, participants_df, qc=qc,
+                                        tiv_columns=tiv_columns, participant_columns=participants_columns)
+    logger.info('--> Remaining samples: {} / {}'.format(len(ni_participants_df), len(ni_filenames)))
+    logger.info('--> Remaining samples: {} / {}'.format(len(ni_rois_df), len(ni_filenames)))
+
+    logger.info(f"# 3) Load {len(ni_participants_df)} images")
+    try:
+        dtype = np.dtype(data_type)
+    except TypeError:
+        raise ValueError(f"Unknown value of data_type : {data_type}")
+    ni_arr = load_images(ni_participants_df, check=check, dtype=dtype)
+    logger.info(f'--> {len(ni_participants_df)} img loaded')
+    assert ni_arr.shape[0] == ni_participants_df.shape[0] == ni_rois_df.shape[0], "Unexpected nb of participants"
+
+    logger.info("# 3bis) Global scaling of arrays and ROIs to adjust for TIV ")
+    assert np.all(ni_rois_df["tiv"] == ni_participants_df["tiv"]), "rois['tiv'] !=  participants['tiv']"
+
+    ni_arr = global_scaling(ni_arr, axis0_values=ni_participants_df["tiv"].values, target=1500)
+    ni_arr = ni_arr.astype(dtype)
+
+    # imgs_arr = global_scaling(imgs_arr, axis0_values=rois['TIV'].values, target=1500)
+    gscaling = 1500 / ni_participants_df['tiv']
+    ni_rois_df.loc[:, 'tiv':] = ni_rois_df.loc[:, 'tiv':].multiply(gscaling, axis="index")
+
+    logger.info("# 4) Save the new participants dataframe")
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+        logger.info(f"Output directory created : {output_path}")
+    ni_participants_df = standardize_df(ni_participants_df, id_types)
+    ni_rois_df = standardize_df(ni_rois_df, id_types)
+    try:
+        dico_ext = {"\t": "tsv", ",": "csv"}
+        ext = dico_ext[sep]
+    except KeyError:
+        raise ValueError(f"Unknown value of separator : {sep}, \
+                         accepted values are : {list(dico_ext.keys())}")
+
+    if os.path.exists(
+            output_cat12(dataset_name, output_path, mri_preproc='participants', ext=ext)):
+        answer = input(f"There is already a participants dataframe at {output_path}. Do you want to replace it ? (y/n)")
+        if answer != "y":
+            logger.warning("The nii array and the participant dataframe have not been saved.")
+            return 0
+    ni_participants_df.to_csv(
+        output_cat12(dataset_name, output_path, mri_preproc='participants', ext=ext), index=False, sep=sep)
+    
+    logger.info("# 4 bis) Save the rois dataframe")
+    if os.path.exists(
+            output_cat12(dataset_name, output_path, mri_preproc='rois', scaling="gs", ext=ext)):
+        answer = input(f"There is already a rois dataframe at {output_path}. Do you want to replace it ? (y/n)")
+        if answer != "y":
+            logger.warning("The nii array and the participant dataframe have not been saved.")
+            return 0
+    ni_rois_df.to_csv(
+        output_cat12(dataset_name, output_path, mri_preproc='rois', scaling="gs", ext=ext), index=False, sep=sep)
+
+    logger.info("# 5) Save the raw npy file (with shape {})".format(ni_arr.shape))
+    if os.path.exists(output_cat12(dataset_name, output_path, mri_preproc='mwp1', scaling="gs", ext='npy')):
+        answer = input(f"There is already an array of nii files at {output_path}. Do you want to replace it ? (y/n)")
+        if answer != "y":
+            logger.warning("The nii array has not been saved.")
+            return 0
+    np.save(output_cat12(dataset_name, output_path, mri_preproc='mwp1', scaling="gs", ext='npy'),
+            ni_arr)
+
+    # Deallocate the memory
+    del ni_arr
+"""
 def quasi_raw_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, sep='\t', id_type=str,
                       check=dict(shape=(121, 145, 121), zooms=(1.5, 1.5, 1.5)), resampling=None):
     ########################################################################################################################
@@ -254,86 +375,4 @@ def dti_nii2npy(nii_path, phenotype, dataset_name, output_path, qc=None, sep='\t
     ######################################################################################################################
     # Deallocate the memory
     del ni_arr
-
-
-def cat12_nii2npy(nii_path, phenotype, dataset, output_path, qc=None, sep='\t', id_type=str,
-                  check=dict(shape=(121, 145, 121), zooms=(1.5, 1.5, 1.5)), tiv_columns=[], participants_columns=[]):
-    # Save 3 files:
-    participants_filename = output_cat12(dataset, output_path, mri_preproc='participants', ext='tsv')
-    rois_filename = output_cat12(dataset, output_path, mri_preproc='rois', scaling="gs", ext='tsv')
-    vbm_filename = output_cat12(dataset, output_path, mri_preproc='mwp1', scaling="gs", ext='npy')
-
-    if 'TIV' in phenotype:
-        phenotype.rename(columns={'TIV': 'tiv'}, inplace=True)
-
-    ###########################################################################
-    # Select participants with non missing required keys
-
-    keys_required = ['participant_id', 'age', 'sex', 'tiv', 'diagnosis']
-
-    assert set(keys_required) <= set(phenotype.columns), \
-        "Missing keys in phenotype df that are required to compute the npy array: {}".format(
-            set(keys_required) - set(phenotype.columns))
-
-    ## TODO: change this condition according to session and run in phenotype.tsv
-    # assert len(set(phenotype.participant_id)) == len(phenotype), "Unexpected number of participant_id"
-    null_or_nan_mask = np.zeros(len(phenotype)).astype(bool)
-    for key in keys_required:
-        null_or_nan_mask |= getattr(phenotype, key).isnull() | getattr(phenotype, key).isna()
-    if null_or_nan_mask.sum() > 0:
-        print('Warning: {} participant_id will not be considered because of missing required values:\n{}'. \
-              format(null_or_nan_mask.sum(), list(phenotype[null_or_nan_mask].participant_id.values)))
-
-    participants_df = phenotype[~null_or_nan_mask]
-
-    ###########################################################################
-    #  Read nii files
-
-    ni_filenames = glob.glob(nii_path)
-    # ni_arr, ni_participants_df, ref_img = img_to_array(ni_filenames, expected=check)
-    ni_participants_df = make_participants_df(ni_filenames)
-    print('--> {} images found'.format(len(ni_participants_df)))
-
-    ###########################################################################
-    # Merge nii's participant_id with participants.tsv
-
-    ni_participants_df, ni_rois_df = merge_ni_df(ni_participants_df, participants_df,
-                                                 qc=qc, id_type=id_type,
-                                                 tiv_columns=tiv_columns,
-                                                 participants_columns=participants_columns)
-    print('--> Remaining samples: {} / {}'.format(len(ni_participants_df), len(participants_df)))
-    print('--> Remaining samples: {} / {}'.format(len(ni_rois_df), len(participants_df)))
-
-    print("Loading %i images" % len(ni_participants_df), flush=True)
-    ni_arr = load_images(ni_participants_df, check=check)
-    assert ni_arr.shape[0] == ni_participants_df.shape[0] == ni_rois_df.shape[0], "Unexpected nb of participants"
-
-    ###########################################################################
-    print("# 3) Global scaling of arrays and ROIs to adjust for TIV ")
-    assert np.all(ni_rois_df.tiv == ni_participants_df.tiv), "rois.tiv !=  participants.tiv"
-
-    ni_arr = global_scaling(ni_arr, axis0_values=ni_participants_df.tiv.values, target=1500)
-
-    # imgs_arr = global_scaling(imgs_arr, axis0_values=rois['TIV'].values, target=1500)
-    gscaling = 1500 / ni_participants_df['tiv']
-    ni_rois_df.loc[:, 'tiv':] = ni_rois_df.loc[:, 'tiv':].multiply(gscaling, axis="index")
-
-    ###########################################################################
-    print("## Save array, rois and participants files")
-    ni_participants_df.to_csv(participants_filename, index=False, sep=sep)
-    ni_rois_df.to_csv(rois_filename, index=False, sep=sep)
-    np.save(vbm_filename, ni_arr)
-
-    return participants_filename, rois_filename, vbm_filename
-
-
-
-
-
-
-
-
-
-
-
-
+"""
