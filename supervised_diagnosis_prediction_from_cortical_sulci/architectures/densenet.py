@@ -1,17 +1,11 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Wed May 18 17:07:02 2022
-
-@source : https://github.com/Duplums/bhb10k-dl-benchmark/blob/main/models/densenet.py
-"""
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as cp
 from collections import OrderedDict
 
+
+__all__ = ['DenseNet', '_densenet', 'densenet121']
 
 
 def _bn_function_factory(norm, relu, conv):
@@ -24,8 +18,7 @@ def _bn_function_factory(norm, relu, conv):
 
 
 class _DenseLayer(nn.Sequential):
-    def __init__(self, num_input_features, growth_rate, bn_size, drop_rate,
-                 memory_efficient=False):
+    def __init__(self, num_input_features, growth_rate, bn_size, drop_rate, memory_efficient=False):
         super(_DenseLayer, self).__init__()
         self.add_module('norm1', nn.BatchNorm3d(num_input_features)),
         self.add_module('relu1', nn.ReLU(inplace=True)),
@@ -47,18 +40,20 @@ class _DenseLayer(nn.Sequential):
             bottleneck_output = cp.checkpoint(bn_function, *prev_features)
         else:
             bottleneck_output = bn_function(*prev_features)
-            
-        new_features = self.conv2(self.relu2(self.norm2(bottleneck_output)))
 
-        if self.drop_rate > 0:
-            new_features = F.dropout(new_features, p=self.drop_rate,
-                                         training=(self.training))
-            
+        if hasattr(self, 'concrete_dropout'):
+            new_features = self.concrete_dropout(self.relu2(self.norm2(bottleneck_output)))
+        else:
+            new_features = self.conv2(self.relu2(self.norm2(bottleneck_output)))
+
+            if self.drop_rate > 0:
+                new_features = F.dropout(new_features, p=self.drop_rate, training=self.training)
+
         return new_features
 
 
 class _DenseBlock(nn.Module):
-    def __init__(self, num_layers, num_input_features, bn_size, growth_rate, drop_rate, bayesian=False, memory_efficient=False):
+    def __init__(self, num_layers, num_input_features, bn_size, growth_rate, drop_rate, memory_efficient=False):
         super(_DenseBlock, self).__init__()
         for i in range(num_layers):
             layer = _DenseLayer(
@@ -66,7 +61,8 @@ class _DenseBlock(nn.Module):
                 growth_rate=growth_rate,
                 bn_size=bn_size,
                 drop_rate=drop_rate,
-                memory_efficient=memory_efficient)
+                memory_efficient=memory_efficient,
+            )
             self.add_module('denselayer%d' % (i + 1), layer)
 
     def forward(self, init_features):
@@ -90,6 +86,7 @@ class _Transition(nn.Sequential):
 class DenseNet(nn.Module):
     r"""Densenet-BC model class, based on
     `"Densely Connected Convolutional Networks" <https://arxiv.org/pdf/1608.06993.pdf>`_
+
     Args:
         growth_rate (int) - how many filters to add each layer (`k` in paper)
         block_config (list of 4 ints) - how many layers in each pooling block
@@ -104,8 +101,7 @@ class DenseNet(nn.Module):
 
     def __init__(self, growth_rate=32, block_config=(3, 12, 24, 16),
                  num_init_features=64, bn_size=4, drop_rate=0, num_classes=1000, in_channels=1,
-                 bayesian=False, out_block=None, memory_efficient=False):
-
+                 out_block=None, memory_efficient=False):
         super(DenseNet, self).__init__()
         self.input_imgs = None
         # First convolution
@@ -117,6 +113,7 @@ class DenseNet(nn.Module):
             ('pool0', nn.MaxPool3d(kernel_size=3, stride=2, padding=1)),
         ]))
         self.out_block = out_block
+        self.num_classes = num_classes
         # Each denseblock
         num_features = num_init_features
         for i, num_layers in enumerate(block_config):
@@ -126,7 +123,6 @@ class DenseNet(nn.Module):
                 bn_size=bn_size,
                 growth_rate=growth_rate,
                 drop_rate=drop_rate,
-                bayesian=bayesian,
                 memory_efficient=memory_efficient
             )
             self.features.add_module('denseblock%d' % (i + 1), block)
@@ -136,7 +132,7 @@ class DenseNet(nn.Module):
                                     num_output_features=num_features // 2)
                 self.features.add_module('transition%d' % (i + 1), trans)
                 num_features = num_features // 2
-            if out_block == 'block%i'%(i+1):
+            if out_block == 'block%i' % (i+1):
                 break
 
         self.num_features = num_features
@@ -149,10 +145,10 @@ class DenseNet(nn.Module):
         elif out_block == 'simCLR':
             self.hidden_representation = nn.Linear(num_features, 512)
             self.head_projection = nn.Linear(512, 128)
-        elif out_block == 'sup_simCLR':
-            self.hidden_representation = nn.Linear(num_features, 512)
-            self.head_projection = nn.Linear(512, 128)
-            self.classifier = nn.Linear(128, num_classes)
+        elif out_block == 'features':
+            pass
+        else:
+            raise NotImplementedError()
 
         # Official init from torch repo.
         for m in self.modules():
@@ -165,33 +161,27 @@ class DenseNet(nn.Module):
                 nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
-        self.input_imgs = x.detach().cpu().numpy()
         features = self.features(x)
         if self.out_block is None:
             out = F.relu(features, inplace=True)
             out = F.adaptive_avg_pool3d(out, 1)
             out = torch.flatten(out, 1)
             out = self.classifier(out)
-        elif self.out_block[:5] == "block":
-            out = F.adaptive_avg_pool3d(features, max(int((10**4/self.num_features)**(1/3)), 1)) # final dim ~ 10**4
-            out = torch.flatten(out, 1)
         elif self.out_block == "simCLR":
             out = F.relu(features, inplace=True)
             out = F.adaptive_avg_pool3d(out, 1)
             out = torch.flatten(out, 1)
-
+            # Add a projection head to perform self-supervision
             out = self.hidden_representation(out)
             out = F.relu(out, inplace=True)
             out = self.head_projection(out)
-        elif self.out_block == "sup_simCLR":
+        elif self.out_block == 'features':
             out = F.relu(features, inplace=True)
             out = F.adaptive_avg_pool3d(out, 1)
             out = torch.flatten(out, 1)
-
-            out = self.hidden_representation(out)
-            out = F.relu(out, inplace=True)
-            out = self.head_projection(out)
-            out = torch.cat([out, self.classifier(out)], dim=1)
+            return out
+        else:
+            raise NotImplementedError()
 
         return out.squeeze(dim=1)
 
@@ -199,11 +189,16 @@ class DenseNet(nn.Module):
         return self.input_imgs
 
 
-def densenet121(memory_efficient=False, **kwargs):
+def _densenet(arch, growth_rate, block_config, num_init_features, **kwargs):
+    model = DenseNet(growth_rate, block_config, num_init_features, **kwargs)
+    return model
+
+
+def densenet121(**kwargs):
     r"""Densenet-121 model from
     `"Densely Connected Convolutional Networks" <https://arxiv.org/pdf/1608.06993.pdf>`_
-    Args:
-        memory_efficient (bool) - If True, uses checkpointing. Much more memory efficient,
-          but slower. Default: *False*. See `"paper" <https://arxiv.org/pdf/1707.06990.pdf>`_
     """
-    return DenseNet(32, (6, 12, 24, 16), 64, memory_efficient=memory_efficient, **kwargs)
+    return _densenet('densenet121', 32, (6, 12, 24, 16), 64, **kwargs)
+
+
+
