@@ -200,6 +200,10 @@ def standardize_df(df, id_types={"participant_id": str, "session": int, "acq": i
     """Change data types of dataframe columns according to id_types."""
     if "TIV" in df.columns:
         df = df.rename(columns={'TIV': 'tiv'})
+    if "Age" in df.columbs:
+        df = df.rename(columns={"Age": "age"})
+    if "Sex" in df.columns:
+        df = df.rename(columns={"Sex": "sex"})
     if "session" in df.columns and is_string_dtype(df["session"]):
         df["session"] = df["session"].apply(lambda s: s[1:] if s.startswith(("V", "v")) else s)
     for col, t in id_types.items():
