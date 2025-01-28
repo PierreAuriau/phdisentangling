@@ -39,7 +39,7 @@ def merge_ni_df(ni_participants_df, participants_df, qc=None, tiv_columns=(), pa
     logger.debug(f"Unique key phenotype dataframe : {unique_key_pheno}")
     logger.debug(f"Unique key qc dataframe : {unique_key_qc}")
     # 2) Keeps only the matching (participant_id, session, run) from both ni_participants_df and participants_df by
-    #    preserving the order of ni_participants_df
+    #    preserving the order of participants_df
     # !! Very import to have a clean index (to retrieve the order after the merge)
     # Create an "index" column
     for key in unique_key_pheno:
@@ -50,8 +50,8 @@ def merge_ni_df(ni_participants_df, participants_df, qc=None, tiv_columns=(), pa
             logger.error(f"The key {key} is in participants_df and not in ni_participants_df")
             raise KeyError(e)
     ni_participants_df = ni_participants_df.reset_index(drop=True).reset_index() # stores a clean index from 0..len(df)
-    ni_participants_merged = pd.merge(ni_participants_df, participants_df, on=unique_key_pheno,
-                                      how='inner', validate='m:1')
+    ni_participants_merged = pd.merge(participants_df, ni_participants_df, on=unique_key_pheno,
+                                      how='inner', validate='1:m')
     logger.debug(f"ni_participants :\n{ni_participants_df.head()}"
                  f"\n\tdata types : {[(k, ni_participants_df[k].dtype) for k in unique_key_pheno]}")
     logger.debug(f"participants :\n{participants_df.head()}"
@@ -200,11 +200,18 @@ def standardize_df(df, id_types={"participant_id": str, "session": int, "acq": i
     """Change data types of dataframe columns according to id_types."""
     if "TIV" in df.columns:
         df = df.rename(columns={'TIV': 'tiv'})
-    if "Age" in df.columbs:
+    if "Age" in df.columns:
         df = df.rename(columns={"Age": "age"})
     if "Sex" in df.columns:
         df = df.rename(columns={"Sex": "sex"})
-    if "session" in df.columns and is_string_dtype(df["session"]):
+    if ("sex" in df.columns) and (is_string_dtype(df["sex"])):
+        df["sex"] = df["sex"].apply(lambda s: s.upper())
+    if ("participant_id" in df.columns) and (is_string_dtype(df["participant_id"])) \
+        and ("sub-" in df["participant_id"].iloc[0]):
+        # remove sub-
+        df["participant_id"] = df["participant_id"].str.extract("sub-([a-zA-Z0-9]+)")[0]
+    if ("session" in df.columns) and (is_string_dtype(df["session"])):
+        # remove v
         df["session"] = df["session"].apply(lambda s: s[1:] if s.startswith(("V", "v")) else s)
     for col, t in id_types.items():
         if col in df.columns:
