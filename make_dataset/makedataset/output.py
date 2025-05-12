@@ -54,3 +54,8 @@ def output_dti(dataset, output_path, modality='dwi', mri_preproc='tbss', type=No
 def output_skeleton(dataset, output_path, modality='morphologist', mri_preproc='skeleton', dtype=None, ext=None, side=None):
     # type data64, or data32
     return os.path.join(output_path, '_'.join(filter(None, (dataset, modality, side, mri_preproc, dtype))) + f".{ext}")
+
+def output_freesurfer(dataset, output_path, modality="freesurfer", mri_preproc="textures", ext=None):
+    if isinstance(mri_preproc, str):
+        mri_preproc = [mri_preproc]
+    return os.path.join(output_path, '_'.join(filter(None, (dataset, modality, *mri_preproc))) + f".{ext}")
