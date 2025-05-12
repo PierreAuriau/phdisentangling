@@ -59,7 +59,7 @@ phenotype["sex"] = phenotype["sex"].apply(lambda s: {0.0: "M", 0: "M", 1: "F", 1
 phenotype = standardize_df(phenotype, id_types=ID_TYPES)
 assert phenotype["study"].notnull().values.all(), logger.error("study column in phenotype has nan values")
 assert phenotype["site"].notnull().values.all(), logger.error("site column in phenotype has nan values")
-assert phenotype["tiv"].notnull().values.all(), logger.error("tiv column in phenotype has nan values")
+assert phenotype["diagnosis"].notnull().values.all(), logger.error("diagnosis column in phenotype has nan values")
 
 # Quality checks
 
