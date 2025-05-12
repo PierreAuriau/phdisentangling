@@ -43,7 +43,7 @@ output_dir = os.path.join(path_to_data, "cat12vbm", study)
 # Parameters
 regex = "sub-*/ses-*/anat/mri/mwp1*.nii"
 nii_path = os.path.join(cat12_dir, regex)
-output_path = os.path.join(output_dir, "arrays", "new_participants")
+output_path = os.path.join(output_dir, "arrays", "without_nss_scores_from_tableau")
 
 check = {"shape": (121, 145, 121), 
          "voxel_size": (1.5, 1.5, 1.5)}
@@ -82,6 +82,8 @@ logger.info(f"df_score_nss: {len(df_score_nss)} subjects")
 df_score_nss = df_score_nss[df_score_nss["StudySubjectID"].notnull()]
 logger.info(f"df_score_nss: remove subjects without StudySubjectID -> {len(df_score_nss)} subjects left.")
 # Filling NSS scores column
+# NB: not confident in NSS score from Tableau as it differs from those of DataAUSZviaSPSS_Gilles
+"""
 logger.info(f"{df_score_nss['NSS'].isnull().sum()} participants do not have NSS score.")
 tableau = pd.read_excel(os.path.join(study_dir, "phenotype", "Tableau_IRM_AUSZ_MASC_NSS_BPRS_DTD_.xlsx"), 
                         sheet_name=0, engine="openpyxl")
@@ -97,6 +99,7 @@ for _, row in df_merged[df_merged["NSS"].isnull()].iterrows():
             logger.warning(f"Inconsistency in the two dataframes in the age column: {row['Age']}, {row['Âge']}")
     df_score_nss.loc[df_score_nss["StudySubjectID"] == row["StudySubjectID"], "NSS"] = row[" NSS"]
 logger.info(f"Filling 'NSS' column: {df_score_nss['NSS'].isnull().sum()} participants left without NSS score.")
+"""
 """ Oldies
 for sbj, score in zip(["AZ-FF-01-061", "AZ-RH-01-105", "AZ-IA-01-116", "AZ-RC-01-132"],
                       [14.5, 5.0, 4.0, 4.5]):

@@ -208,7 +208,7 @@ skeleton_size = True
 stored_data = True
 regex = f"{side}resampled_skeleton_sub-*_ses-*.nii.gz"
 nii_path = os.path.join(resampled_skeleton_dir, side, regex)
-output_path = os.path.join(output_dir, "arrays", "new_participants")
+output_path = os.path.join(output_dir, "arrays", "without_nss_scores_from_tableau")
 
 check = {"shape": (128, 152, 128), 
         "voxel_size": (1.5, 1.5, 1.5),
@@ -264,7 +264,9 @@ df_score_nss = pd.read_csv(path_to_score_nss, sep=",")
 logger.info(f"df_score_nss: {len(df_score_nss)} subjects")
 df_score_nss = df_score_nss[df_score_nss["StudySubjectID"].notnull()]
 logger.info(f"df_score_nss: remove subjects without StudySubjectID -> {len(df_score_nss)} subjects left.")
-# Filling NSS scores column
+# Filling NSS scores column 
+# NB: not confident in NSS score from Tableau as it differs from those of DataAUSZviaSPSS_Gilles
+"""
 logger.info(f"{df_score_nss['NSS'].isnull().sum()} participants do not have NSS score.")
 tableau = pd.read_excel(os.path.join(study_dir, "phenotype", "Tableau_IRM_AUSZ_MASC_NSS_BPRS_DTD_.xlsx"), 
                         sheet_name=0, engine="openpyxl")
@@ -280,6 +282,7 @@ for _, row in df_merged[df_merged["NSS"].isnull()].iterrows():
             logger.warning(f"Inconsistency in the two dataframes in the age column: {row['Age']}, {row['Âge']}")
     df_score_nss.loc[df_score_nss["StudySubjectID"] == row["StudySubjectID"], "NSS"] = row[" NSS"]
 logger.info(f"Filling 'NSS' column: {df_score_nss['NSS'].isnull().sum()} participants left without NSS score.")
+"""
 """ Oldies
 # Add NSS scores from : /neurospin/psy_sbox/AUSZ/phenotype/Tableau_IRM_AUSZ_MASC_NSS_BPRS_DTD_.xlsx
 for sbj, score in zip(["AZ-FF-01-061", "AZ-RH-01-105", "AZ-IA-01-116", "AZ-RC-01-132"],
@@ -317,6 +320,7 @@ df_merged.loc[df_merged["age"].isnull(), "age"] = df_merged.loc[df_merged["age"]
 logger.info(f"Merging age and Age columns: {df_merged['age'].isnull().sum()} participants do not have age.")
 logger.info(f"{df_merged['sex'].isnull().sum()} participants do not have sex.")
 df_merged.loc[df_merged["sex"].isnull(), "sex"] = df_merged.loc[df_merged["sex"].isnull(), "Sex"]
+df_merged["sex"] = df_merged["sex"].replace({"m": "M", "f": "F"})
 logger.info(f"Merging sex and Sex columns: {df_merged['sex'].isnull().sum()} participants do not have sex.")
 logger.info(f"{df_merged['diagnosis'].isnull().sum()} participants do not have diagnosis.")
 # Group 3 ==> control
