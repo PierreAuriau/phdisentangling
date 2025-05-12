@@ -103,7 +103,7 @@ def load_images_with_aims(ni_participants_df, check=dict(), dtype=None, stored_d
     if stored_data:
         ni_imgs = list(map(lambda v: get_stored_data_with_aims(v), ni_imgs))
 
-    ni_arr = np.stack([np.expand_dims(np.squeeze(np.array(img)), axis=0) for img in ni_imgs])
+    ni_arr = np.stack([np.expand_dims(np.squeeze(np.asarray(img)), axis=0) for img in ni_imgs])
 
     if dtype is not None: # convert the np type
         ni_arr = ni_arr.astype(dtype)
