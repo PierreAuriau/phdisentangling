@@ -7,6 +7,7 @@ from collections import OrderedDict
 import re
 import numpy as np
 import pandas as pd
+import os
 
 def get_keys(filename, id_regex, ses_regex, acq_regex, run_regex):
     """
