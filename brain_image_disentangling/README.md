@@ -1,9 +1,8 @@
-# Brain folding shape encoder
+# Brain image disentangling
 
 In this folder, we developped deep learning models to isolate the neurodevelopmental load of subjects from structural brain images. The method is to combine the skeletons, which capture neurodevelopmental information, with another brain features, which combine neurodevelopmental and late brain development information. From these two brain features, we aimed to exhibit the shared and unique information of each brain feature.
 
-
-We developped two models:
+In this purpose, we developped two models:
 * [vae_based](./vae_based): model designed on variational based autoencoder (VAE)
 * [cl_based](./cl_based): model designed on contrastive learning (CL)
 
