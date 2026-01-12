@@ -12,11 +12,16 @@ ___
 
 We compared three approaches:
 * [supervised_learning](./supervised_learning): training the model from scratch in a supervised setting
-<img src="../figures/method_supervised_learning.png" alt="Supervised learning method">
+
+<img src="../figures/method_supervised_learning.jpg" alt="Supervised learning method" height="150px">
+
 * [transfer_learning](./transfer_learning): pre-training of the model on a large cohort (UK Biobank)
-<img src="../figures/method_transfer_learning.png" alt="Transfer learning method">
+
+<img src="../figures/method_transfer_learning.jpg" alt="Transfer learning method">
+
 * [regional_approach](./regional_approach): aggregation of local experts on a specific brain area (based on the brain folding foundation model Champollion)
-<img src="../figures/method_local_model.png" alt="Regional approach">
+
+<img src="../figures/method_local_model.jpg" alt="Regional approach" height="250px">
 
 
 ## Datasets
@@ -71,5 +76,5 @@ In each folder, the script are organized as follows:
 * ```classifier.py mlp.py densenet.py resnet.py alexnet.py```: deep neural network architectures
 * ```make_dataset.py```: create array and dataframe from Champollion embeddings
 * ```make_pca.py```: make a dimension reduction of Champollion embeddings with an ACP
-* ```plot_heatmap_in_anatomist.py```: create 3D figures of heatmaps in Anatomist. Warning: you need to execute the code in a Brainvisa container.
+* ```plot_heatmap_in_anatomist.py```: create 3D figures of XAI heatmaps in Anatomist. Warning: you need to execute the code in a Brainvisa container.
 
