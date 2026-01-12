@@ -41,7 +41,10 @@ These first steps can also be launched with the bash script `launch_deep_folding
 
 ## skeleton to array
 The second step is to create the numpy array with the generated images. In parallel, a csv file is create with all the metadata about the participants of the study.
-Subjects could be selected according to a quality check file. 
+Subjects could be selected according to a quality check file.
+
+## Other preprocessing
+For the VBM, quasi-raw or Freesurfer preprocessings, there are scripts named `<preprocessing_name>_make_dataset.py` that gather all the files into an array along with a participant dataframe.
 
 
 # Useful links

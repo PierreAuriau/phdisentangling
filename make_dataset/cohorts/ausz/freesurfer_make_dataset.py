@@ -110,4 +110,3 @@ freesurfer_concatnpy(npy_path=nii_path,
                      dtype=np.float32,
                      id_types=ID_TYPES,
                      check=check)
-
