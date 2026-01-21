@@ -12,3 +12,7 @@ We then aimed to advance toward a multimodal approach that disentangles informat
 * ```make_dataset```: scripts for the creation of the clinical and general population datasets. For each dataset, a numpy array is created with the skeleton images of the subjects along with a tsv file with the meta-data. I developped the scripts in particular for the morphologist preprocessing (skeletons).
 * ```brain_folding_shape_encoder```: developping an encoder able to extract relevant representations of brain folding (chapter 2).
 * ```brain_image_disentangling```: developping models to isolate the neurodevelopmental contribution to brain anatomy (chapter 3).
+
+## Useful links
+
+* The full manuscript is available at [this link](https://theses.fr/2025UPAST066).
