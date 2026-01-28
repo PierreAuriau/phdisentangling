@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+authors:
+- family-names: "Auriau"
+  given-names: "Pierre"
+title: "Identification of neurodevelopmental variability in anatomical brain images"
+url: "https://github.com/PierreAuriau/phdisentangling"
+preferred-citation:
+  type: phdthesis
+  authors:
+  - family-names: "Auriau"
+    given-names: "Pierre"
+  title: "Identification of neurodevelopmental variability in brain anatomical images"
+  year: 2025
