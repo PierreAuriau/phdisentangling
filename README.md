@@ -13,6 +13,17 @@ We then aimed to advance toward a multimodal approach that disentangles informat
 * ```brain_folding_shape_encoder```: developping an encoder able to extract relevant representations of brain folding (chapter 2).
 * ```brain_image_disentangling```: developping models to isolate the neurodevelopmental contribution to brain anatomy (chapter 3).
 
+## Citation
+If you find this work useful for your research, please cite my [phd thesis](https://theses.hal.science/tel-05380418):
+```
+@phdthesis{Auriau:2025,
+author={Pierre Auriau},
+title={Identification of neurodevelopmental variability in brain anatomical images},
+year={2025},
+school={Université Paris-Saclay}
+}
+```
+
 ## Useful links
 
 * The full manuscript is available at [this link](https://theses.fr/2025UPAST066).
